@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Currency Desk</title>
+<meta name="description" content="Financial Markets and Institutions, Unit 12. Fly from Chicago to Tokyo, change money, price an apple and a Big Mac, and ride the yen carry trade month by month.">
+<meta name="theme-color" content="#13234F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2313234F'/%3E%3Ctext x='16' y='24' font-size='20' text-anchor='middle' fill='%23F7C548' font-family='sans-serif' font-weight='900'%3E%C2%A5%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/big-shoulders.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/atkinson-next.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-sky="day">
+<a class="skip" href="#beat">Skip to the current stop</a>
+<div id="backdrop" aria-hidden="true"></div>
+<header class="top">
+  <p class="mark"><span class="mark-a">The Currency Desk</span><span class="mark-b">Chicago to Tokyo</span></p>
+  <nav class="route" aria-label="Your trip: ten stops and your receipt">
+    <ol id="route"></ol>
+  </nav>
+  <div class="tools">
+    <button type="button" id="soundBtn" class="tool" aria-pressed="false"><span class="tool-ic" aria-hidden="true"></span><span class="tool-tx">Sound off</span></button>
+  </div>
+</header>
+<main id="beat" tabindex="-1"></main>
+<footer class="foot"><p id="codeLine"></p></footer>
+<div id="flight" hidden></div>
+<script>window.DESK_NO_UI = true;</script>
+<script src="config.js"></script>
+<script src="desk-engine.js"></script>
+<script src="journey.js"></script>
+<script src="data/yen-history.js"></script>
+<script src="fx.js"></script>
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
