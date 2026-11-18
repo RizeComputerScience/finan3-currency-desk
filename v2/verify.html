@@ -57,7 +57,7 @@ async function handle(files){
   }
   render();
 }
-function carryLine(p){const e=(p.steps||[]).find(x=>x.id==='carry');const k=e&&window.JOURNEY?JOURNEY.parseRideValue(e.value):null;return k?`<p><small>${esc(JOURNEY.rideReceiptLine(k))}</small></p>`:'';}
+function carryLine(p){const e=(p.steps||[]).find(x=>x.id==='carry');const r=e&&window.JOURNEY?JOURNEY.parseRide(e.value):null;return r?`<p><small>${esc(JOURNEY.rideReceiptLine(r.k,JOURNEY.pathOf(r.seed)))}</small></p>`:'';}
 function render(){
   const seen={};rows.forEach(r=>{if(r.p&&r.p.code)seen[r.p.code]=(seen[r.p.code]||0)+1;});
   const dup=r=>seen[r.p.code]>1?' <span class="bad">(same code as another file)</span>':'';

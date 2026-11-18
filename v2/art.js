@@ -33,14 +33,33 @@
   }
   function street(variant) {
     const r = rng(variant === 'burger' ? 11 : variant === 'market' ? 23 : 5);
-    let wins = '';
-    const bldg = (x, w, h, col) => { let s = `<rect x="${x}" y="${720 - h}" width="${w}" height="${h}" fill="${col}"/>`; for (let yy = 720 - h + 24; yy < 690; yy += 34) for (let xx = x + 14; xx < x + w - 20; xx += 30) if (r() < 0.38) s += `<rect x="${xx}" y="${yy}" width="14" height="18" fill="${P.lantern}" opacity="${(0.55 + r() * 0.45).toFixed(2)}"/>`; return s; };
-    for (let x = -20; x < 1620;) { const w = 120 + r() * 140; wins += bldg(x.toFixed(0), w.toFixed(0), 240 + r() * 320, r() < 0.5 ? '#0E1A3D' : '#162a5a'); x += w + 6; }
-    const signs = variant === 'market' ? '' : `<g opacity=".7"><g><rect x="150" y="300" width="64" height="250" rx="6" fill="#1a1030" stroke="${P.neon}" stroke-width="5"/>${vtext(182, 350, 'ラーメン', 46, P.neon)}</g>
-      <g><rect x="1520" y="420" width="64" height="210" rx="6" fill="#0b2030" stroke="${P.cyan}" stroke-width="5"/>${vtext(1552, 470, '営業中', 46, P.cyan)}</g></g>`;
-    const wires = `<path d="M-10 120 Q 400 200 820 130 T 1620 150" stroke="#0A1230" stroke-width="4" fill="none"/><path d="M-10 160 Q 500 240 900 170 T 1620 200" stroke="#0A1230" stroke-width="3" fill="none"/><rect x="880" y="100" width="12" height="620" fill="#0A1230"/><rect x="850" y="120" width="72" height="8" fill="#0A1230"/>`;
-    return svg('0 0 1600 900', `<rect width="1600" height="900" fill="${P.night}"/><circle cx="1460" cy="120" r="58" fill="${P.paper}"/><g opacity=".5">${skyline(r, 720, P.night2, 0, 200, 420, 0, 1600)}</g>${wins}${signs}${wires}
-      <rect y="720" width="1600" height="180" fill="#0B1532"/><path d="M0 760 H1600" stroke="#1C2C5C" stroke-width="3"/><ellipse cx="800" cy="800" rx="600" ry="40" fill="${P.lantern}" opacity=".06"/>`, 'backdrop');
+    const defs = `<defs><radialGradient id="glw"><stop offset="0" stop-color="${P.lantern}" stop-opacity=".55"/><stop offset="1" stop-color="${P.lantern}" stop-opacity="0"/></radialGradient><radialGradient id="glr"><stop offset="0" stop-color="#FF7A5C" stop-opacity=".6"/><stop offset="1" stop-color="#FF7A5C" stop-opacity="0"/></radialGradient><linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16244F"/><stop offset="1" stop-color="#0A1330"/></linearGradient></defs>`;
+    let back = '';
+    const bldg = (x, w, h, col) => { let o = `<rect x="${x}" y="${560 - h}" width="${w}" height="${h}" fill="${col}"/>`; for (let yy = 560 - h + 22; yy < 540; yy += 30) for (let xx = x + 12; xx < x + w - 18; xx += 26) if (r() < 0.42) o += `<rect x="${xx}" y="${yy}" width="12" height="16" fill="${r() < 0.8 ? P.lantern : '#9FD8FF'}" opacity="${(0.5 + r() * 0.45).toFixed(2)}"/>`; return o; };
+    for (let x = -20; x < 1620;) { const w = 110 + r() * 150; back += bldg(+x.toFixed(0), +w.toFixed(0), 180 + r() * 300, r() < 0.5 ? '#0E1A3D' : '#172B5C'); x += w + 6; }
+    // street-level shops: lit fronts, eaves, short indigo curtains
+    let shops = '';
+    const shopCols = ['#F7C548', '#FFB37A', '#9FD8FF', '#F7C548', '#FFD27A'];
+    for (let k = 0, x = 0; x < 1600; k++) { const w = 190 + r() * 90; shops += `<rect x="${x}" y="560" width="${w}" height="170" fill="#0B1634"/><rect x="${x + 14}" y="600" width="${w - 28}" height="110" fill="${shopCols[k % 5]}" opacity=".5"/><rect x="${x + 8}" y="584" width="${w - 16}" height="16" fill="#1C2C5C"/>`;
+      const n = 3 + Math.floor(r() * 3); for (let c = 0; c < n; c++) shops += `<rect x="${(x + 14 + c * (w - 28) / n + 2).toFixed(0)}" y="600" width="${((w - 28) / n - 4).toFixed(0)}" height="40" fill="${k % 2 ? P.night : '#7A1A2A'}"/><circle cx="${(x + 14 + (c + .5) * (w - 28) / n).toFixed(0)}" cy="618" r="6" fill="${P.paper}" opacity=".8"/>`;
+      if (r() < 0.6) shops += `<g fill="#0A1430"><circle cx="${x + 40 + r() * (w - 80)}" cy="652" r="9"/><rect x="${x + 30 + r() * (w - 80)}" y="664" width="22" height="46" rx="8"/></g>`;
+      x += w + 8; }
+    // a string of paper lanterns
+    const lan = (x, y, red) => `<circle cx="${x}" cy="${y}" r="38" fill="url(#${red ? 'glr' : 'glw'})"/><line x1="${x}" y1="${y - 26}" x2="${x}" y2="${y - 18}" stroke="#0A1230" stroke-width="2"/><rect x="${x - 9}" y="${y - 20}" width="18" height="5" fill="#0A1230"/><ellipse cx="${x}" cy="${y}" rx="15" ry="18" fill="${red ? P.red2 : P.lantern}"/><path d="M${x - 15} ${y - 5} H${x + 15} M${x - 15} ${y + 5} H${x + 15}" stroke="#0A1230" stroke-width="1" opacity=".35"/><rect x="${x - 9}" y="${y + 16}" width="18" height="5" fill="#0A1230"/>`;
+    let lanterns = `<path d="M-20 470 Q 400 540 820 478 T 1640 490" stroke="#0A1230" stroke-width="3" fill="none"/>`;
+    for (let k = 0; k < 14; k++) { const x = 40 + k * 118, t = x / 1640, y = 470 + 60 * Math.sin(Math.PI * ((x % 820) / 820)) * 0.9 + 26; lanterns += lan(x, Math.round(y), k % 3 !== 1); }
+    // vending machines, glowing
+    const vend = (x) => `<rect x="${x}" y="606" width="70" height="124" rx="4" fill="#E9F3FF"/><rect x="${x + 6}" y="614" width="58" height="62" fill="#BFE3FF"/>${[0, 1, 2].map((row) => [0, 1, 2, 3, 4].map((c) => `<rect x="${x + 9 + c * 11}" y="${618 + row * 20}" width="7" height="15" rx="2" fill="${['#E5252B', '#2FBF7F', '#F7C548', '#13234F', '#FF5FA2'][(c + row) % 5]}"/>`).join('')).join('')}<rect x="${x + 6}" y="684" width="58" height="10" fill="#13234F"/><circle cx="${x + 35}" cy="${668}" r="80" fill="url(#glw)" opacity=".5"/>`;
+    const signs = variant === 'market' ? '' : `<g><rect x="150" y="300" width="64" height="250" rx="6" fill="#1a1030" stroke="${P.neon}" stroke-width="5"/>${vtext(182, 350, 'ラーメン', 46, P.neon)}</g><g><rect x="1520" y="330" width="64" height="210" rx="6" fill="#0b2030" stroke="${P.cyan}" stroke-width="5"/>${vtext(1552, 380, '営業中', 46, P.cyan)}</g>`;
+    const wires = `<path d="M-10 120 Q 400 200 820 130 T 1620 150" stroke="#0A1230" stroke-width="4" fill="none"/><path d="M-10 160 Q 500 240 900 170 T 1620 200" stroke="#0A1230" stroke-width="3" fill="none"/><rect x="880" y="100" width="12" height="460" fill="#0A1230"/><rect x="850" y="120" width="72" height="8" fill="#0A1230"/>`;
+    // the road, a crossing, a few walkers in silhouette, a bicycle
+    let road = `<rect y="730" width="1600" height="170" fill="url(#road)"/>`;
+    for (let k = 0; k < 9; k++) road += `<polygon points="${520 + k * 66},760 ${560 + k * 66},760 ${548 + k * 78},900 ${500 + k * 78},900" fill="${P.paper}" opacity=".16"/>`;
+    const walker = (x, y, s, c) => `<g transform="translate(${x} ${y}) scale(${s})" fill="${c}"><circle cx="0" cy="-58" r="10"/><rect x="-11" y="-46" width="22" height="40" rx="9"/><rect x="-9" y="-10" width="7" height="34" rx="3"/><rect x="2" y="-10" width="7" height="34" rx="3"/></g>`;
+    const walkers = [[300, 860, 1.1], [380, 850, 1], [1090, 870, 1.15], [1200, 845, .95], [700, 840, .9]].map(([x, y, sc], i) => walker(x, y, sc, i % 2 ? '#060C22' : '#0A1430')).join('');
+    const bike = `<g transform="translate(1340 868)" stroke="#060C22" stroke-width="5" fill="none"><circle cx="-26" cy="0" r="18"/><circle cx="26" cy="0" r="18"/><path d="M-26 0 L -6 -26 L 18 -26 L 26 0 M-6 -26 L 0 0 L 18 -26"/></g>`;
+    const cat = `<g transform="translate(980 726)" fill="#060C22"><ellipse cx="0" cy="0" rx="18" ry="9"/><circle cx="16" cy="-8" r="7"/><path d="M12 -14 l3 -7 l3 7 Z M18 -14 l3 -7 l3 7 Z"/><path d="M-18 0 q -12 -4 -10 -18" stroke="#060C22" stroke-width="4" fill="none"/></g>`;
+    return svg('0 0 1600 900', `${defs}<rect width="1600" height="900" fill="${P.night}"/><circle cx="1460" cy="120" r="58" fill="${P.paper}"/><g opacity=".5">${skyline(r, 560, P.night2, 0, 200, 420, 0, 1600)}</g>${back}${signs}${wires}${shops}${vend(60)}${vend(1440)}${lanterns}${road}${cat}${walkers}${bike}`, 'backdrop');
   }
   function floor() {
     const r = rng(31); let city = '';
