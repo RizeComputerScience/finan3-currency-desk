@@ -37,7 +37,7 @@
     const items = J.STOPS.map((s, i) => { const d = S && L(s.id).done; return `<li><button type="button" data-go="${s.id}" class="${d ? 'done' : ''}" ${cur === s.id ? 'aria-current="step"' : ''} aria-label="Stop ${i + 1}, ${esc(s.title)}${d ? ', done' : ''}">${i + 1}</button></li>`; });
     $('#route').innerHTML = `<li class="city" aria-hidden="true">ORD</li>${items.join('')}<li><button type="button" data-go="receipt" class="end" ${cur === 'receipt' ? 'aria-current="step"' : ''} aria-label="Your boarding pass and receipt">✈</button></li><li class="city" aria-hidden="true">HND</li>`;
     $$('#route button').forEach((b) => b.addEventListener('click', () => { if (S) go(b.dataset.go); }));
-    $('#codeLine').innerHTML = S ? `Desk code <b>${h.fmtCode(S.code)}</b>. Your progress saves in this browser. To continue on another computer, type this code on the first screen.` : 'Graded on completion. A wrong answer never costs points.';
+    $('#codeLine').innerHTML = S ? `Desk code <b>${h.fmtCode(S.code)}</b>. Your progress saves in this browser. To continue on another computer, type this code on the first screen.` : '';
   }
   const soundBtn = $('#soundBtn');
   function setSound(v) { sfx.on = v; soundBtn.setAttribute('aria-pressed', String(v)); $('.tool-tx', soundBtn).textContent = v ? 'Sound on' : 'Sound off'; store.set(KEY + ':sound', v); }
@@ -49,8 +49,8 @@
   function frame(id, o) {
     const i = idx(id), st = J.STOPS[i];
     beatEl.innerHTML = `<div class="beat" data-id="${id}">
-      <div class="head"><p class="stopno">Stop ${i + 1} of ${IDS.length}</p><h1>${esc(st.title)}</h1>${o.prompt ? `<p class="prompt">${o.prompt}</p>` : ''}<div class="helps" id="helps"></div><div id="helptext"></div></div>
-      <div class="world">${o.ex ? `<div class="exobj" role="group" aria-label="Worked example">${o.ex}</div>` : ''}${o.world || ''}
+      <div class="head"><p class="stopno">Stop ${i + 1} of ${IDS.length}</p><h1>${esc(st.title)}</h1>${o.prompt ? `<p class="prompt">${o.prompt}</p>` : ''}${o.ex ? `<details class="exwrap" ${matchMedia('(max-width: 860px)').matches ? '' : 'open'}><summary><span class="label-chip">Worked for you</span> ${o.exLine}</summary><div class="exobj">${o.ex}</div></details>` : ''}<div class="helps" id="helps"></div><div id="helptext"></div></div>
+      <div class="world">${o.world || ''}
         <div class="ctrl">${o.ctrl || ''}<div id="fb" class="fb" role="status" aria-live="polite"></div>
         <div class="next" id="nextRow" ${L(id).done ? '' : 'hidden'}><button type="button" class="btn" id="nextBtn">${esc(nextLabel(id))}</button></div></div></div></div>`;
     $('#nextBtn').addEventListener('click', () => leave(id));
@@ -69,6 +69,9 @@
       if (l === 2 && onAnswer) onAnswer();
     }));
   }
+  // A person on the trip, with a line. say() swaps in a new line and mood with a small pop.
+  const says = (who, mood, text, id) => `<div class="says" ${id ? `id="${id}"` : ''} data-who="${who}"><div class="face">${A.person(who, mood)}</div><p class="bubble"><b>${esc(J.NAMES[who])}</b><span>${esc(text)}</span></p></div>`;
+  function say(id, who, mood, text) { const el = $('#' + id); if (!el) return; el.outerHTML = says(who, mood, text, id); const n = $('#' + id); if (n && !FX.reduced()) n.animate([{ transform: 'scale(.97)', opacity: .5 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'ease-out' }); }
   // A number box inside an equation.
   const numIn = (id, ph, wide, pre) => `<label class="num-in" id="w-${id}"><span class="sr">${esc(ph)}</span>${pre ? `<span aria-hidden="true">${pre}</span>` : ''}<input id="${id}" inputmode="decimal" autocomplete="off" class="${wide ? 'wide' : ''}"><span class="mk" aria-hidden="true"></span></label>`;
   function markIn(id, ok) { const w = $('#w-' + id); if (!w) return; w.classList.toggle('ok', ok === true); w.classList.toggle('bad', ok === false); $('.mk', w).textContent = ok === true ? '✓' : ok === false ? '✗' : ''; }
@@ -97,14 +100,15 @@
       <div class="head"><p class="stopno">Financial Markets and Institutions, Unit 12</p><h1>The Currency Desk</h1>${dare ? `<p class="dare">${esc(J.challengeLine(dare.k, J.pathOf(dare.seed)))}</p>` : ''}<p class="prompt">${esc(J.PROMPTS.start)}</p>
         <div class="row"><button type="button" class="btn" id="playBtn">${vs ? 'Take the trade' : 'Play the yen trade'}</button></div>
         <div class="tripdoor"><p class="prompt">${esc(J.PROMPTS.trip)}</p><div class="row"><button type="button" class="btn ghost" id="goBtn">Take the whole trip</button></div>
-        <p class="q" style="margin-top:22px">Started on another computer?</p>
-        <form class="codein" id="codeForm"><label class="sr" for="codeIn">Your desk code</label><input id="codeIn" placeholder="ABCD-EFGH" maxlength="9" autocomplete="off" spellcheck="false"><button class="btn small ghost" type="submit">Continue</button></form>
+        <p style="margin-top:18px"><button type="button" class="link" id="haveCode">Started on another computer? Type your desk code</button></p>
+        <form class="codein" id="codeForm" hidden><label class="sr" for="codeIn">Your desk code</label><input id="codeIn" placeholder="ABCD-EFGH" maxlength="9" autocomplete="off" spellcheck="false"><button class="btn small ghost" type="submit">Continue</button></form>
         ${last ? `<p><button type="button" class="link" id="resume">Continue desk ${esc(h.fmtCode(last))}</button></p>` : ''}
         <div id="fb" class="fb" role="status" aria-live="polite"></div></div></div>
       <div class="world">${boardHTML('start')}</div></div>`;
     runBoard('start');
     $('#goBtn').addEventListener('click', () => { begin(h.newCode()); showPass(); });
     $('#playBtn').addEventListener('click', () => { const saved = last ? store.get(KEY + ':' + last) : null; if (saved && saved.code) begin(saved.code, saved); else begin(h.newCode()); S.quick = true; S.ride.month = 0; S.ride.closedAt = null; S.ride.seed = dare && dare.seed ? dare.seed : J.newSeed(); save(); go('carry'); });
+    $('#haveCode').addEventListener('click', () => { $('#codeForm').hidden = false; $('#codeIn').focus(); });
     $('#codeForm').addEventListener('submit', (ev) => { ev.preventDefault(); const c = $('#codeIn').value; if (!h.validCode(c)) { fb('bad', 'A desk code has eight letters and numbers, like ABCD-EFGH. Check it on your receipt or your other screen.'); return; } const n = h.normCode(c); begin(n, store.get(KEY + ':' + n)); go(S.at); });
     if (last) $('#resume').addEventListener('click', () => { begin(last, store.get(KEY + ':' + last)); go(S.at); });
   }
@@ -140,15 +144,15 @@
   function stopQ1() {
     setScene('hall', 'day'); const e = L('q1'), q = C.quiz[0];
     frame('q1', { prompt: esc(J.PROMPTS.q1),
-      world: boardHTML('q1') + `<div class="money" role="group" aria-label="Where does the money go?"><button type="button" class="pile" data-j="0"><span class="pile-ic usd" aria-hidden="true">$</span><b>Into dollars</b><span>The Fed pays above 4%</span></button><button type="button" class="pile" data-j="1"><span class="pile-ic jpy" aria-hidden="true">¥</span><b>Into yen</b><span>Japan pays below zero</span></button></div>`,
+      world: says(...J.LINES.q1, 'travis') + boardHTML('q1') + `<p class="ask">Tap where the money goes.</p><div class="money" role="group" aria-label="Where does the money go?"><button type="button" class="pile" data-j="0"><span class="pile-ic usd" aria-hidden="true">$</span><b>Into dollars</b><span>The Fed pays above 4%</span></button><button type="button" class="pile" data-j="1"><span class="pile-ic jpy" aria-hidden="true">¥</span><b>Into yen</b><span>Japan pays below zero</span></button></div>`,
       ctrl: '' });
     runBoard(e.done ? 'q1' : 'q1wait');
     $$('.pile').forEach((b) => b.addEventListener('click', () => {
       const j = +b.dataset.j; attempt('q1');
-      if (D.judgeQuiz(0, j).ok) { $$('.pile').forEach((x) => { x.classList.toggle('chosen', x === b); x.classList.remove('wrong'); }); fb('info', 'Investors everywhere do the same. Watch the board.'); runBoard('q1now'); setTimeout(() => win('q1', esc(q.why[0]), { choice: String(j) }), FX.reduced() ? 0 : 1500); }
+      if (D.judgeQuiz(0, j).ok) { $$('.pile').forEach((x) => { x.classList.toggle('chosen', x === b); x.classList.remove('wrong'); }); fb('info', 'Investors everywhere do the same. Watch the board.'); runBoard('q1now'); setTimeout(() => { win('q1', esc(q.why[0]), { choice: String(j) }); say('travis', ...J.LINES.q1After); }, FX.reduced() ? 0 : 1500); }
       else { b.classList.add('wrong'); fb('bad', 'In 2022 yen in Japan paid less than nothing, and dollars paid above 4%. Money moves to the currency that pays more: try the other pile.'); sfx.nope(); }
     }));
-    if (e.done) { $$('.pile').forEach((x) => x.classList.toggle('chosen', x.dataset.j === '0')); fb('ok', `<b class="fbtag">Right.</b> ${esc(q.why[0].replace(/^Right\.\s*/, ''))}`); }
+    if (e.done) { say('travis', ...J.LINES.q1After); $$('.pile').forEach((x) => x.classList.toggle('chosen', x.dataset.j === '0')); fb('ok', `<b class="fbtag">Right.</b> ${esc(q.why[0].replace(/^Right\.\s*/, ''))}`); }
   }
 
   // ---------------- stop 2: change your money ----------------
@@ -169,7 +173,7 @@
       <div id="mealLine" ${e.done || (e.rows && e.rows[0]) ? '' : 'hidden'}><p style="margin:12px 0 4px;font-size:16px">${esc(J.PROMPTS.convertMeal(t))}</p>
       <div class="eq"><span>${F.yen(t.Y)}</span><span class="op">÷</span><span>${t.R}</span><span class="op">=</span>${numIn('c1', 'The meal in dollars', false, '$')}</div></div></div>`;
     frame('convert', { prompt: esc(J.PROMPTS.convert(t)),
-      world: `<div class="booth"><div class="booth-sign"><span class="jp">外貨両替</span><span>Currency Exchange</span></div>
+      world: says(...J.LINES.convert, 'dana') + `<div class="booth"><div class="booth-sign"><span class="jp">外貨両替</span><span>Currency Exchange</span></div>
         <div class="booth-rate"><span class="lab">One dollar<br>buys</span><span id="fl-cr" data-w="7"></span></div>
         <div class="booth-body"><div class="tray" id="trayUsd" aria-label="Your dollars on the counter"><span class="lbl">Your dollars</span></div><div class="tray" id="trayYen" aria-label="Yen the clerk counts out"><span class="lbl">Yen counted out</span></div></div>
         <div class="booth-body" style="margin-top:16px">${ex}${mine}</div></div>`,
@@ -177,7 +181,7 @@
     const fl = FX.Flap($('#fl-cr'), 7); fl.set('150 YEN', { instant: true }); setTimeout(() => fl.set(t.R + ' YEN', { label: t.R + ' yen per dollar' }), 600);
     $('#trayUsd').insertAdjacentHTML('beforeend', dollarNotes(t.D).map((v) => A.usdNote(v)).join(''));
     if (e.rows) { if (e.rows[0]) $('#c0').value = e.rows[0]; if (e.rows[1]) $('#c1').value = e.rows[1]; }
-    if (e.done) { markIn('c0', true); markIn('c1', true); trayYen($('#trayYen'), t.yen, false); $('#chk').hidden = true; fb('ok', `<b class="fbtag">Right.</b> ${esc(C.praise(t))}`); }
+    if (e.done) { say('dana', ...J.LINES.convertAfter(t)); markIn('c0', true); markIn('c1', true); trayYen($('#trayYen'), t.yen, false); $('#chk').hidden = true; fb('ok', `<b class="fbtag">Right.</b> ${esc(C.praise(t))}`); }
     const check = () => {
       const r0 = val('c0'), mealOpen = !$('#mealLine').hidden, r1 = mealOpen ? val('c1') : '';
       attempt('convert'); const res = C.judgeTask(t, { rows: [r0, r1] }, h), a = res.rowRes[0];
@@ -186,7 +190,7 @@
       markIn('c0', true);
       if (!mealOpen) { $('#mealLine').hidden = false; trayYen($('#trayYen'), t.yen, true); fb('info', `${F.usd0(t.D)} becomes ${F.yen(t.yen)}. Now the meal.`); $('#chk').textContent = 'Check the meal'; $('#c1').focus(); return; }
       if (!res.ok) { markIn('c1', false); fb('bad', esc(res.rowRes[1] ? res.rowRes[1].msg : res.msg)); sfx.nope(); return; }
-      markIn('c1', true); $('#chk').hidden = true; win('convert', esc(C.praise(t)), { rows: [r0, r1] });
+      markIn('c1', true); $('#chk').hidden = true; win('convert', esc(C.praise(t)), { rows: [r0, r1] }); say('dana', ...J.LINES.convertAfter(t));
     };
     $('#chk').addEventListener('click', check); onEnter('c0', check); onEnter('c1', check);
     helps('convert', () => ($('#mealLine').hidden ? `Dollars to yen, multiply by the rate: ${F.usd0(t.D)} × ${t.R}.` : `Yen to dollars, divide by the rate: ${F.yen(t.Y)} ÷ ${t.R}.`),
@@ -225,12 +229,12 @@
     setScene('street', 'night', 'fruit'); const t = task('apple'), e = L('apple');
     const exTilt = J.tilt(3000 / 150, 25);
     frame('apple', { prompt: esc(J.PROMPTS.apple(t)),
-      ex: `<div class="exmini">${A.scale(A.shirt(0, -30, .8), A.shirt(0, -30, .8), 'exScale')}</div><p><span class="label-chip">Worked for you</span><br>A T-shirt: <b>¥3,000 ÷ 150 = $20.00</b>, against $25.00 in Chicago. Tokyo is cheaper by <b>$5.00</b>, so the Chicago shirt sinks.</p>`,
-      world: `<div class="awning"><span>くだもの</span></div>
-        <div class="scalebox">${A.scale(A.apple(0, -32, 1.1), A.apple(0, -32, 1.1), 'apScale')}
-          <div class="tags"><div class="tag" id="tagT"><p class="where"><span class="jp">東京</span>Tokyo</p><p class="price"><span class="jp">りんご</span>¥200</p><div class="eq">¥200 <span class="op">÷</span> 150 <span class="op">=</span> ${numIn('a0', 'Tokyo apple in dollars', false, '$')}</div><button type="button" class="pick" data-c="tokyo">Tokyo is cheaper</button></div>
-            <div class="tag" id="tagC"><p class="where">Chicago</p><p class="price">$1.00</p><p class="sub">Already in dollars.</p><button type="button" class="pick" data-c="chicago">Chicago is cheaper</button></div></div></div>
-        <div class="slip" id="gapSlip" hidden><h3>How much cheaper?</h3><div class="eq"><span>higher price</span><span class="op">−</span><span>lower price</span><span class="op">=</span>${numIn('a1', 'How much cheaper, in dollars', false, '$')}</div></div>`,
+      exLine: 'A T-shirt: ¥3,000 ÷ 150 = $20.00',
+      ex: `<div class="exmini">${A.scale(A.shirt(0, -30, .8), A.shirt(0, -30, .8), 'exScale')}</div><p>Against $25.00 in Chicago, Tokyo is cheaper by <b>$5.00</b>, so the Chicago shirt sinks.</p>`,
+      world: `<div class="cast2">${says(...J.LINES.sato, 'sato')}${says(...J.LINES.apple, 'travis')}</div><div class="applegrid"><div class="scalebox"><div class="awning"><span>くだもの</span></div>${A.scale(A.apple(0, -32, 1.1), A.apple(0, -32, 1.1), 'apScale')}</div>
+          <div class="tags vert"><div class="tag" id="tagT"><p class="where"><span class="jp">東京</span>Tokyo</p><p class="price"><span class="jp">りんご</span>¥200</p><div class="eq">¥200 <span class="op">÷</span> 150 <span class="op">=</span> ${numIn('a0', 'Tokyo apple in dollars', false, '$')}</div><button type="button" class="pick" data-c="tokyo">Tokyo is cheaper</button></div>
+            <div class="tag" id="tagC"><p class="where">Chicago</p><p class="price">$1.00</p><p class="sub">Already in dollars.</p><button type="button" class="pick" data-c="chicago">Chicago is cheaper</button></div>
+        <div class="slip" id="gapSlip" hidden><h3>How much cheaper?</h3><div class="eq"><span>higher price</span><span class="op">−</span><span>lower price</span><span class="op">=</span>${numIn('a1', 'How much cheaper, in dollars', false, '$')}</div></div></div></div>`,
       ctrl: `<p class="q" id="appleQ">Guess first: tap the cheaper city. Then check the Tokyo tag.</p><button type="button" class="btn" id="chk">Check the tag</button>` });
     A.setScale($('#exScale'), exTilt);
     const sc = $('#apScale'); A.setScale(sc, 0); $('.lock', sc).setAttribute('opacity', 1);
@@ -239,7 +243,8 @@
     const setChoice = (c) => { choice = c; $$('.pick').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === c))); };
     const toGap = () => { stage = 2; $('#gapSlip').hidden = false; $('#gapSlip .eq').innerHTML = `<span>${F.usd2(Math.max(t.tokyo, t.usd))}</span><span class="op">−</span><span>${F.usd2(Math.min(t.tokyo, t.usd))}</span><span class="op">=</span>${numIn('a1', 'How much cheaper, in dollars', false, '$')}`; onEnter('a1', check); $('#chk').textContent = 'Check the difference'; };
     if (e.rows && e.rows[0]) $('#a0').value = e.rows[0];
-    if (e.done) { markIn('a0', true); unlock(false); setChoice('chicago'); toGap(); $('#a1').value = e.rows[1] || ''; markIn('a1', true); $('#chk').hidden = true; fb('ok', `<b class="fbtag">Right.</b> ${esc(C.praise(t))}`); }
+    if (!e.done) { $('#a0').disabled = true; $('#a0').placeholder = 'guess'; $('#chk').disabled = true; }
+    if (e.done) { say('travis', ...J.LINES.appleAfter); markIn('a0', true); unlock(false); setChoice('chicago'); toGap(); $('#a1').value = e.rows[1] || ''; markIn('a1', true); $('#chk').hidden = true; fb('ok', `<b class="fbtag">Right.</b> ${esc(C.praise(t))}`); }
     function check() {
       attempt('apple');
       const r0 = val('a0');
@@ -255,10 +260,10 @@
       const r1 = val('a1'), res = C.judgeTask(t, { rows: [r0, r1], choice }, h);
       L('apple').rows = [r0, r1]; L('apple').choice = choice; save();
       if (!res.ok) { if (res.rowRes[1] && !res.rowRes[1].ok) markIn('a1', false); fb('bad', esc(res.msg.replace(/^.*?: /, ''))); sfx.nope(); return; }
-      markIn('a1', true); $('#chk').hidden = true; win('apple', esc(C.praise(t)), { rows: [r0, r1], choice });
+      markIn('a1', true); $('#chk').hidden = true; win('apple', esc(C.praise(t)), { rows: [r0, r1], choice }); say('travis', ...J.LINES.appleAfter);
     }
     $$('.pick').forEach((b) => b.addEventListener('click', () => {
-      if (stage === 0) { guess = b.dataset.c; setChoice(guess); fb('info', `You guessed ${guess === 'tokyo' ? 'Tokyo' : 'Chicago'}. Now check: change the Tokyo price into dollars on its tag.`); $('#a0').focus(); return; }
+      if (stage === 0) { guess = b.dataset.c; setChoice(guess); $('#a0').disabled = false; $('#a0').placeholder = ''; $('#chk').disabled = false; fb('info', `You guessed ${guess === 'tokyo' ? 'Tokyo' : 'Chicago'}. Now check: change the Tokyo price into dollars on its tag.`); $('#a0').focus(); return; }
       setChoice(b.dataset.c); attempt('apple');
       if (b.dataset.c !== t.decision) { fb('bad', 'Compare dollars with dollars: the Tokyo apple is $1.33 and the Chicago apple is $1.00. A bigger number of yen does not mean a higher price.'); sfx.nope(); return; }
       fb('info', 'Yes, Chicago. Now, by how much?'); if (stage < 2) { toGap(); $('#chk').hidden = false; } $('#a1').focus();
@@ -274,11 +279,12 @@
     let rate = Dl.market, choice = e.choice || null;
     const sw = J.SWISS;
     frame('bigmac', { prompt: esc(J.PROMPTS.bigmac(t)),
-      ex: `<div class="exmini">${A.dial(0.6, 1.8, sw.market, 'exDial', 'francs per $')}</div><p><span class="label-chip">Worked for you</span><br>Switzerland, same day: <b>7.30 francs ÷ $6.22 = 1.17</b> francs per dollar balances the burgers. The market gave only 0.81, so the Swiss burger cost more in dollars: the franc was overvalued.</p>`,
-      world: `<div class="neon" aria-hidden="true">ハンバーガー<small>BURGERS</small></div>
+      exLine: 'Switzerland: 7.30 francs ÷ $6.22 = 1.17 francs per dollar',
+      ex: `<div class="exmini">${A.dial(0.6, 1.8, sw.market, 'exDial', 'francs per $')}</div><p>At 1.17 francs per dollar the Swiss and American burgers balance. The market gave only 0.81, so the Swiss burger cost more in dollars: the franc was overvalued.</p>`,
+      world: `<div class="cast2"><div class="neon" aria-hidden="true">ハンバーガー<small>BURGERS</small></div>${says(...J.LINES.bigmac, 'travis')}</div>
         <div class="bmrow"><div class="scalebox">${A.scale(A.burger(0, -26, 1.15), A.burger(0, -26, 1.15), 'bmScale')}
           <div class="tags"><div class="tag"><p class="where"><span class="jp">日本</span>Japan</p><p class="price">¥500</p><p class="sub" id="jpUsd"></p></div><div class="tag"><p class="where">United States</p><p class="price">$6.22</p><p class="sub">Already in dollars.</p></div></div></div>
-        <div class="dialbox"><div class="dial" id="dial" tabindex="0" role="slider" aria-label="Exchange rate, yen per dollar" aria-valuemin="${Dl.min}" aria-valuemax="${Dl.max}">${A.dial(Dl.min, Dl.max, Dl.market, 'dialSvg', 'yen per $')}</div>
+        <div class="dialbox"><div class="dialwrap"><button type="button" class="nudge" id="dmore" aria-label="More yen per dollar">+</button><button type="button" class="nudge" id="dless" aria-label="Fewer yen per dollar">−</button><span class="dialhint" aria-hidden="true">Turn me</span><div class="dial" id="dial" tabindex="0" role="slider" aria-label="Exchange rate, yen per dollar" aria-valuemin="${Dl.min}" aria-valuemax="${Dl.max}">${A.dial(Dl.min, Dl.max, Dl.market, 'dialSvg', 'yen per $')}</div></div>
           <div class="readout" aria-live="polite"><span class="big" id="dialBig"></span><span id="dialSub"></span><div class="eqline" id="dialEq"></div></div></div></div>
         <div id="bmChoice" hidden style="width:min(100%,640px)"><p class="q">The market said 162. The burger says 80. By this measure, is the yen undervalued or overvalued?</p><div class="row"><button type="button" class="pick" data-c="under">Undervalued: Japan’s Big Mac costs less in dollars</button><button type="button" class="pick" data-c="over">Overvalued: Japan’s Big Mac costs more in dollars</button></div></div>`,
       ctrl: `<p class="q">Turn the dial until the scale is level. The side that costs more in dollars sinks.</p>` });
@@ -306,15 +312,18 @@
     dialEl.addEventListener('keydown', (ev) => { const st = ev.shiftKey ? 10 : 1, k = ev.key; let v = rate;
       if (k === 'ArrowLeft' || k === 'ArrowDown') v -= st; else if (k === 'ArrowRight' || k === 'ArrowUp') v += st; else if (k === 'PageDown') v -= 10; else if (k === 'PageUp') v += 10; else if (k === 'Home') v = Dl.min; else if (k === 'End') v = Dl.max; else return;
       ev.preventDefault(); setRate(Math.round(v * 10) / 10, true); });
+    let nudgeT = null; const nudge = (d) => { $('.dialhint') && $('.dialhint').remove(); setRate(Math.round((rate + d) * 10) / 10, true); };
+    [['#dless', -1], ['#dmore', 1]].forEach(([sel, d]) => { const b = $(sel); b.addEventListener('click', () => nudge(d)); b.addEventListener('pointerdown', () => { nudgeT = setInterval(() => nudge(d * 2), 140); }); ['pointerup', 'pointerleave'].forEach((ev) => b.addEventListener(ev, () => clearInterval(nudgeT))); });
+    dialEl.addEventListener('pointerdown', () => { $('.dialhint') && $('.dialhint').remove(); });
     const setChoice = (c) => { choice = c; $$('#bmChoice .pick').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === c))); };
     $$('#bmChoice .pick').forEach((b) => b.addEventListener('click', () => {
       setChoice(b.dataset.c); attempt('bigmac');
       const rows = [J.fmt.r1(rate), (B.jp / B.jpRate).toFixed(2)], res = C.judgeTask(t, { rows, choice: b.dataset.c }, h);
       L('bigmac').rows = rows; L('bigmac').choice = b.dataset.c; save();
       if (!res.ok) { fb('bad', esc(res.msg.replace(/^.*?: /, '')) + (res.rowRes.every((x) => !x || x.ok) ? '' : ' Turn the dial until the scale is level first.')); sfx.nope(); return; }
-      win('bigmac', esc(C.praise(t)), { rows, choice: b.dataset.c });
+      win('bigmac', esc(C.praise(t)), { rows, choice: b.dataset.c }); say('travis', ...J.LINES.bigmacAfter);
     }));
-    if (e.done) { rate = Dl.target; setChoice('under'); fb('ok', `<b class="fbtag">Right.</b> ${esc(C.praise(t))}`); }
+    if (e.done) { say('travis', ...J.LINES.bigmacAfter); rate = Dl.target; setChoice('under'); fb('ok', `<b class="fbtag">Right.</b> ${esc(C.praise(t))}`); }
     draw(false);
     helps('bigmac', () => 'Turn the dial toward fewer yen per dollar. Each dollar then buys fewer yen, so the ¥500 burger costs more dollars, and the scale comes level.',
       () => '¥500 ÷ $6.22 = 80.4 yen per dollar. The dial is set there for you. At the market’s 162, Japan’s burger cost only $3.09, so by this measure the yen was undervalued.',
@@ -323,21 +332,21 @@
 
   // ---------------- stop 5: who sets the price? ----------------
   function stopQ2() {
-    setScene('street', 'night', 'market'); const M = J.MARKET, e = L('q2');
+    setScene('floor', 'deep'); const M = J.MARKET, e = L('q2');
     const pos = (v, lo, hi) => (100 * (v - lo) / (hi - lo)).toFixed(2) + '%';
     frame('q2', { prompt: esc(J.PROMPTS.q2),
-      world: `<div class="market">
+      world: says(...J.LINES.q2, 'ken') + `<div class="market">
         <div class="orders" id="orders">${J.ORDERS.map((o) => `<button type="button" class="order" data-o="${o.id}"><span class="side ${o.side}">${o.side === 'buy' ? 'Buys yen' : 'Sells yen'}</span><span class="sentmk" aria-hidden="true">Sent</span><b>${esc(o.who)}</b><span>${esc(o.what)}</span></button>`).join('')}</div>
-        <div class="gauge" id="gYen" data-g="yen"><button type="button" class="slot" data-g="yen" hidden>Put a label on the yen</button><h3><span>Yen per dollar</span><span id="fl-yen" data-w="5" class="bigflap"></span></h3>
+        <div class="gauge" id="gYen" data-g="yen"><button type="button" class="slot" data-g="yen" hidden>Put a label on the yen</button><h3><span>Yen per dollar <small class="sketch">${esc(J.MARKET_NOTES.sketchShort)}</small></span><span id="fl-yen" data-w="5" class="bigflap"></span></h3>
           <div class="tape"><div class="mark" id="mkYen" style="left:${pos(150, 140, 165)}"></div><div class="ends"><span><span class="jp-s">円高</span> stronger yen</span><span>weaker yen <span class="jp-s">円安</span></span></div></div><p class="gnote" id="nYen"></p></div>
         <div class="gaugerow">
           <div class="gauge" data-g="hk"><button type="button" class="slot" data-g="hk" hidden>Put a label on Hong Kong’s dollar</button><h3><span>Hong Kong dollar</span><small id="hkv">7.800 per U.S. dollar</small></h3><div class="tape"><div class="band" style="left:${pos(7.75, 7.7, 7.9)};right:${(100 - 100 * (7.85 - 7.7) / 0.2).toFixed(2)}%"></div><div class="mark" id="mkHk" style="left:${pos(7.8, 7.7, 7.9)}"></div><div class="ends"><span>7.70</span><span>7.90</span></div></div>
-            <div class="tank"><span>Defender’s U.S. dollars</span><span class="t"><i id="hkRes" style="width:100%"></i></span></div><p class="gnote" id="nHk"></p></div>
+            <div class="tank"><span>Hong Kong’s reserve of U.S. dollars</span><span class="t"><i id="hkRes" style="width:100%"></i></span></div><p class="gnote" id="nHk"></p></div>
           <div class="gauge" data-g="cn"><button type="button" class="slot" data-g="cn" hidden>Put a label on the yuan</button><h3><span>China’s yuan</span><small id="cnv">at the central rate</small></h3><div class="tape"><div class="band" style="left:${pos(-2, -3, 3)};right:${pos(-2, -3, 3)}"></div><div class="mark" id="mkCn" style="left:50%"></div><div class="ends"><span>−3%</span><span>+3%</span></div></div><p class="gnote" id="nCn"></p></div>
         </div>
-        <p class="gnote sk">${esc(J.MARKET_NOTES.sketch)}</p></div>`,
-      ctrl: `<p class="q" id="sendHint">Tap each order to send it into the market.</p><button type="button" class="link" id="skipQ">Skip to the sorting</button>
-        <div id="sorter" hidden><p class="q">What sets each price? Tap a label, then tap the currency it belongs to.</p><div class="chips" id="chips">${J.SORT_CHIPS.map(([k, tx]) => `<button type="button" class="chip" data-k="${k}" aria-pressed="false">${esc(tx)}</button>`).join('')}</div></div>` });
+</div>`,
+      ctrl: `<p class="q" id="sendHint">Tap each order to send it into the market.</p><button type="button" class="link" id="skipQ">Skip to the sorting</button>` });
+    $('#orders').insertAdjacentHTML('afterend', `<div id="sorter" hidden><p class="q sortq">Tap a label, then tap the currency it belongs to.</p><div class="chips" id="chips">${J.SORT_CHIPS.map(([k, tx]) => `<button type="button" class="chip" data-k="${k}" aria-pressed="false">${esc(tx)}</button>`).join('')}</div></div>`);
     const fy = FX.Flap($('#fl-yen'), 5);
     let sent = (S.market || []).slice();
     const apply = (st, anim) => {
@@ -353,7 +362,7 @@
       if (sent.includes(id)) return; sent.push(id); S.market = sent.slice(); save();
       const b = $(`.order[data-o="${id}"]`); b.classList.add('sent'); b.setAttribute('aria-disabled', 'true'); sfx.note();
       const sts = states(), st = sts[sts.length - 1], o = J.ORDERS.find((x) => x.id === id);
-      if (st.mof) { apply(Object.assign({}, st, { yen: st.yen - M.intervene }), true); await FX.wait(1100); sfx.thud(); $('#nYen').innerHTML = `<span class="stamp drop">Japan’s government buys yen</span><span class="stamp-note">${esc(J.MARKET_NOTES.mof)}</span>`; await FX.wait(400); apply(st, true); }
+      if (st.mof) { apply(Object.assign({}, st, { yen: st.yen - M.intervene }), true); await FX.wait(1100); sfx.thud(); say('ken', ...J.LINES.q2Mof); $('#nYen').innerHTML = `<span class="stamp drop">Japan’s government buys yen</span><span class="stamp-note">${esc(J.MARKET_NOTES.mof)}</span>`; await FX.wait(400); apply(st, true); }
       else { apply(st, true); if (!$('#nYen .stamp')) $('#nYen').textContent = `${o.who} ${o.side === 'buy' ? 'buys' : 'sells'} yen, and a dollar now buys ${st.yen.toFixed(1)} yen.`; }
       if (sent.length === J.ORDERS.length) ask();
     }
@@ -366,13 +375,13 @@
     function judgeSort() {
       attempt('q2'); const r = J.judgeSort(placed);
       $$('.slot').forEach((sl) => sl.classList.toggle('ok', r.right.includes(sl.dataset.g)));
-      if (r.ok) { $$('.slot').forEach((sl) => { sl.disabled = true; }); win('q2', esc(C.quiz[1].why[C.quiz[1].answer]) + ' ' + esc(J.SORT_DONE), { choice: String(C.quiz[1].answer) }); return; }
+      if (r.ok) { say('ken', ...J.LINES.q2After); $$('.slot').forEach((sl) => { sl.disabled = true; }); win('q2', esc(C.quiz[1].why[C.quiz[1].answer]) + ' ' + esc(J.SORT_DONE), { choice: String(C.quiz[1].answer) }); return; }
       r.wrong.forEach((g) => { delete placed[g]; }); paintSort(); fb('bad', esc(r.msg)); sfx.nope();
     }
     function ask() {
-      $('#sendHint').hidden = true; $('#skipQ').hidden = true; $('#sorter').hidden = false;
+      $('#sendHint').hidden = true; $('#skipQ').hidden = true; $('#sorter').hidden = false; $('#orders').hidden = true; if (!e.done) say('ken', ...J.LINES.q2Sort);
       $$('.slot').forEach((sl) => { sl.hidden = false; sl.setAttribute('data-empty', sl.textContent); });
-      if (e.done) { Object.assign(placed, J.SORT_KEY); paintSort(); $$('.slot').forEach((sl) => { sl.classList.add('ok'); sl.disabled = true; }); fb('ok', `<b class="fbtag">Right.</b> ${esc(C.quiz[1].why[C.quiz[1].answer].replace(/^Right\.\s*/, ''))} ${esc(J.SORT_DONE)}`); }
+      if (e.done) { say('ken', ...J.LINES.q2After); Object.assign(placed, J.SORT_KEY); paintSort(); $$('.slot').forEach((sl) => { sl.classList.add('ok'); sl.disabled = true; }); fb('ok', `<b class="fbtag">Right.</b> ${esc(C.quiz[1].why[C.quiz[1].answer].replace(/^Right\.\s*/, ''))} ${esc(J.SORT_DONE)}`); }
     }
     $$('.chip').forEach((c) => c.addEventListener('click', () => { held = held === c.dataset.k ? null : c.dataset.k; sfx.tick(); paintSort(); }));
     $$('.slot').forEach((sl) => sl.addEventListener('click', () => {
@@ -412,114 +421,143 @@
     if (!R.seed) { R.seed = J.newSeed(); save(); }
     const P = J.pathOf(R.seed), res = (m) => J.closeResult(m, P), pt = (a, b, f) => pathTo(a, b, f, P);
     CH.hi = Math.max(600000, Math.ceil(Math.max(...Array.from({ length: 12 }, (_, i) => res(i + 1).gainYen)) / 200000) * 200000);
-    const quick = !!S.quick;
-    frame('carry', { prompt: esc(R.day1 < 3 ? J.PROMPTS.carryDay1 : R.closedAt ? J.PROMPTS.carryLedger : J.PROMPTS.carryRide), world: '<div class="floor" id="floor"></div>', ctrl: '<div id="carryCtrl"></div>' });
-    if (R.day1 < 3) dayOne(); else ride();
+    const quick = !!S.quick, sum = (r) => `${F.usd0(r.usd)} × ${r.rate} − ${F.yen(r.owe)} owed`;
+    frame('carry', { prompt: esc(R.day1 < 4 ? J.PROMPTS.carryDay1 : R.closedAt ? J.PROMPTS.carryEnd : J.PROMPTS.carryRide), world: '<div class="floor" id="floor"></div>', ctrl: '' });
+    if (R.day1 < 4) dayOne(); else ride();
 
+    // Day one, worked: three taps make the trade, then the two ways the year can end, with Ken's view of the risk.
     function dayOne() {
-      const steps = [['Borrow ¥15,000,000', 'bank', '¥15,000,000'], ['Change it at 150', 'fx', '$100,000'], ['Deposit it at 5%', 'us', '$100,000']];
-      $('#floor').innerHTML = `<div class="flow"><div class="node" id="n-bank"><span class="jp">日本</span><b>Bank in Japan</b><span>lends at 0.1% a year</span><span class="amt" id="a-bank"></span></div><div class="arrow" id="ar1"></div>
+      const steps = [['Borrow ¥15,000,000', 'You owe ¥15,015,000 in a year (0.1% interest).'], ['Change it at 150', '¥15,000,000 ÷ 150 = $100,000.'], ['Deposit it at 5%', '$100,000 grows to $105,000 in a year.']];
+      $('#floor').innerHTML = `<div class="fl-grid"><div class="fl-main"><div class="flow"><div class="node" id="n-bank"><span class="jp">日本</span><b>Bank in Japan</b><span>lends at 0.1%</span><span class="amt" id="a-bank"></span></div><div class="arrow" id="ar1"></div>
         <div class="node" id="n-fx"><span class="jp">両替</span><b>Exchange</b><span>150 yen per dollar</span><span class="amt" id="a-fx"></span></div><div class="arrow" id="ar2"></div>
-        <div class="node" id="n-us"><span class="jp">ドル</span><b>U.S. account</b><span>pays 5% a year</span><span class="amt" id="a-us"></span></div></div>`;
-      const paint = () => { const k = R.day1; ['bank', 'fx', 'us'].forEach((n, i) => { $('#n-' + n).classList.toggle('lit', k === i + 1); $('#a-' + n).textContent = k === i + 1 ? steps[i][2] : ''; }); $('#ar1').classList.toggle('lit', k >= 2); $('#ar2').classList.toggle('lit', k >= 3);
-        $('#carryCtrl').innerHTML = k < 3 ? `<button type="button" class="btn" id="d1">${steps[k][0]}</button>` : ''; if (k < 3) $('#d1').addEventListener('click', () => { R.day1++; save(); sfx.note(); paint(); if (R.day1 === 3) setTimeout(() => { $('.prompt').textContent = J.PROMPTS.carryRide; ride(); }, FX.reduced() ? 0 : 900); else $('#d1').focus(); }); };
+        <div class="node" id="n-us"><span class="jp">ドル</span><b>U.S. account</b><span>pays 5%</span><span class="amt" id="a-us"></span></div></div><p class="stepnote" id="stepnote" aria-live="polite"></p><div id="danger"></div></div>
+        <div class="fl-side">${says('ken', ...J.LINES.day1.slice(1), 'kenSay')}<div id="carryCtrl"></div></div></div>`;
+      const amts = ['¥15,000,000', '$100,000', '$105,000'];
+      const paint = () => { const k = Math.min(R.day1, 3); ['bank', 'fx', 'us'].forEach((n, i) => { $('#n-' + n).classList.toggle('lit', k === i + 1); $('#a-' + n).textContent = k >= i + 1 ? amts[i] : ''; }); $('#ar1').classList.toggle('lit', k >= 2); $('#ar2').classList.toggle('lit', k >= 3);
+        $('#stepnote').textContent = k ? steps[k - 1][1] : '';
+        if (k < 3) { $('#carryCtrl').innerHTML = `<button type="button" class="btn" id="d1">${steps[k][0]}</button>`; $('#d1').addEventListener('click', () => { R.day1++; save(); sfx.note(); paint(); if ($('#d1')) $('#d1').focus(); }); }
+        else danger(); };
+      const danger = () => {
+        const a = J.DANGER.stay, b = J.DANGER.fall;
+        $('#danger').innerHTML = `<div class="danger"><h3>How the year can end</h3><p>At the end you change $105,000 back into yen and repay ¥15,015,000.</p>
+          <div class="dz ok"><b>A dollar still buys 150</b><span>$105,000 × 150 = ${F.yen(a.back)}</span><strong>${F.yenSigned(a.gainYen)}</strong></div>
+          <div class="dz bad"><b>The yen gets stronger: a dollar buys 142</b><span>$105,000 × 142 = ${F.yen(b.back)}</span><strong>${F.yenSigned(b.gainYen)}</strong></div></div>`;
+        say('kenSay', ...J.LINES.danger); $('#stepnote').hidden = true;
+        $('#carryCtrl').innerHTML = `<div class="ridebar"><button type="button" class="btn" id="go">Start the year</button></div>`;
+        $('#go').addEventListener('click', () => { R.day1 = 4; save(); $('.prompt').textContent = J.PROMPTS.carryRide; ride(true); }); $('#go').focus({ preventScroll: true });
+      };
       paint();
-      if (quick) { const auto = () => { if (!$('#d1')) return; R.day1++; save(); sfx.note(); paint(); if (R.day1 === 3) setTimeout(() => { $('.prompt').textContent = J.PROMPTS.carryRide; ride(); }, FX.reduced() ? 0 : 700); else setTimeout(auto, FX.reduced() ? 0 : 650); }; setTimeout(auto, FX.reduced() ? 0 : 500); }
+      if (quick && R.day1 < 3) { const auto = () => { if (!$('#d1')) return; R.day1++; save(); sfx.note(); paint(); if (R.day1 < 3) setTimeout(auto, FX.reduced() ? 0 : 600); }; setTimeout(auto, FX.reduced() ? 0 : 400); }
     }
 
-    function ride() {
+    function ride(start) {
       const m0 = R.month;
-      $('#floor').innerHTML = `<div class="tickerbar"><div><div class="pair-l"><span class="jp-s">ドル円</span> One dollar buys</div><span id="fl-tick" data-w="9" class="tick"></span></div><div class="month" id="monthL"></div><div class="gainbox"><span class="lab">Gain if you closed today</span><span class="val" id="gainV"></span></div></div>
-        <div class="chartwrap" id="chartwrap">${chartSVG()}</div>
-        <div class="accounts" id="accts"><div class="acct"><div class="lab">U.S. account, at 5% a year</div><div class="v" id="usdV"></div><div class="pile-c" id="pile" aria-hidden="true"></div><span class="coinfly" id="coin">$</span><span class="plus" id="plusUsd">+$416.67</span></div><div class="acct"><div class="lab">You owe the bank in Japan, at 0.1%</div><div class="v" id="oweV"></div><span class="plus minus" id="plusYen">+¥1,250 owed</span></div></div>
-        <p class="news" id="news" aria-live="polite"></p><div id="after"></div>`;
+      $('#floor').innerHTML = `<div class="tickerbar"><div><div class="pair-l"><span class="jp-s">ドル円</span> One dollar buys</div><span id="fl-tick" data-w="9" class="tick"></span></div><div class="month" id="monthL"></div><div class="gainbox"><span class="lab" id="gainLab">If you cashed out today</span><span class="val" id="gainV"></span><span class="sum" id="gainSum"></span></div></div>
+        <div class="fl-grid"><div class="fl-main"><div class="chartwrap" id="chartwrap">${chartSVG()}</div>
+          <div class="accounts" id="accts"><div class="acct"><div class="lab">Your dollars, at 5%</div><div class="v" id="usdV"></div><div class="pile-c" id="pile" aria-hidden="true"></div><span class="pile-l">one coin per month of interest</span><span class="coinfly" id="coin">$</span><span class="plus" id="plusUsd">+$416.67</span></div><div class="acct"><div class="lab">Yen you owe, at 0.1%</div><div class="v" id="oweV"></div><span class="plus minus" id="plusYen">+¥1,250</span></div></div></div>
+        <div class="fl-side">${says(...J.kenSays(m0, P), 'kenSay')}<p class="news" id="news" aria-live="polite"></p><div id="carryCtrl"></div></div></div><div id="after"></div>`;
       const tick = FX.Flap($('#fl-tick'), 9);
-      const paint = (m, anim) => { const r = res(m); tick.set(`${r.rate} YEN`, { instant: !anim, label: `${r.rate} yen per dollar`, maxSteps: 6 }); $('#monthL').textContent = m === 0 ? 'Day one' : `Month ${m} of 12`; $('#usdV').textContent = F.usd2(r.usd); $('#oweV').textContent = F.yen(r.owe); $('#pile').innerHTML = '<i></i>'.repeat(m); const gv = $('#gainV'); gv.textContent = F.yenSigned(r.gainYen); gv.classList.toggle('neg', r.gainYen < 0); $('#news').textContent = J.newsFor(m, P); $('#news').classList.toggle('alert', m > P.turn || m === P.alarm); };
+      const paint = (m, anim) => { const r = res(m); tick.set(`${r.rate} YEN`, { instant: !anim, label: `${r.rate} yen per dollar`, maxSteps: 6 }); $('#monthL').textContent = m === 0 ? 'Day one' : `Month ${m} of 12`; $('#usdV').textContent = F.usd2(r.usd); $('#oweV').textContent = F.yen(r.owe); $('#pile').innerHTML = '<i></i>'.repeat(m); const gv = $('#gainV'); gv.textContent = F.yenSigned(r.gainYen); gv.classList.toggle('neg', r.gainYen < 0); $('#gainSum').textContent = sum(r); $('#news').textContent = J.newsFor(m, P); $('#news').classList.toggle('alert', m > P.turn || m === P.alarm); };
       const drawYou = (m, frac) => { setYou(pt(0, Math.min(m, R.closedAt || 12), frac)); const mm = Math.min(m, R.closedAt || 12), k = frac == null ? 1 : frac, g0 = res(Math.max(0, mm - 1)).gainYen, g = res(mm).gainYen; $('#dotYou').setAttribute('cx', cx(mm - 1 + k)); $('#dotYou').setAttribute('cy', cy(g0 + (g - g0) * k)); };
       paint(m0, false); drawYou(m0);
       if (R.closedAt) return ending(false);
-      if (quick && m0 === 0) { hold(); return; }
+      if (start && m0 === 0) { hold(); return; }
       decide();
 
       function decide() {
-        const m = R.month;
+        const m = R.month, c = J.nextMonthCases(m, P), g = res(m).gainYen;
         $('#carryCtrl').innerHTML = m === 0 ? `<div class="ridebar"><button type="button" class="btn" id="hold">Start the year</button></div>`
-          : `<div class="ridebar"><p class="q">Month ${m} of 12. You are up ${F.yenSigned(res(m).gainYen)}. If a dollar still buys ${res(m).rate} yen next month, you add about ${F.yenSigned(Math.round(C.carryAt(m + 1, res(m).rate).gainYen - res(m).gainYen))}.</p><div class="decide"><button type="button" class="btn" id="hold">Hold: collect next month’s interest</button><button type="button" class="btn ghost" id="close">Close and keep <span class="nw">${F.yenSigned(res(m).gainYen)}</span></button></div></div>`;
+          : `<div class="ridebar"><p class="q">Next month, if a dollar still buys ${c.rate}: <b class="up">${F.yenSigned(c.stay)}</b>. If it falls to ${c.dropRate}: <b class="${c.drop < 0 ? 'dn' : 'up'}">${F.yenSigned(c.drop)}</b>.</p><div class="decide"><button type="button" class="btn" id="hold">Hold</button><button type="button" class="btn ghost" id="close">Cash out <span class="nw">${F.yenSigned(g)}</span></button></div></div>`;
         $('#hold').addEventListener('click', hold); if ($('#close')) $('#close').addEventListener('click', closeNow); $('#hold').focus({ preventScroll: true });
       }
       async function step(m, ghost) {
         const prev = res(m - 1), r = res(m);
+        say('kenSay', ...J.kenSays(m, P, ghost));
         if (!ghost) { $('#pile').insertAdjacentHTML('beforeend', '<i class="new"></i>'); $('#coin').classList.remove('go'); void $('#coin').offsetWidth; $('#coin').classList.add('go'); ['#plusUsd', '#plusYen'].forEach((s) => { const x = $(s); x.classList.remove('go'); void x.offsetWidth; x.classList.add('go'); }); sfx.coin(); }
         $('#monthL').textContent = `Month ${m} of 12`; $('#news').textContent = J.newsFor(m, P); $('#news').classList.toggle('alert', m > P.turn || m === P.alarm);
         if (r.rate !== prev.rate) tick.set(`${r.rate} YEN`, { label: `${r.rate} yen per dollar`, maxSteps: 6 });
         const gv = $('#gainV');
-        if (!ghost) { FX.countTo($('#usdV'), prev.usd, r.usd, 700, F.usd2); FX.countTo($('#oweV'), prev.owe, r.owe, 700, F.yen); }
-        await FX.tween(ghost ? 380 : m === 12 ? 1500 : m >= 10 ? 1000 : 700, (k) => {
+        if (!ghost) { FX.countTo($('#usdV'), prev.usd, r.usd, 700, F.usd2); FX.countTo($('#oweV'), prev.owe, r.owe, 700, F.yen); $('#gainSum').textContent = sum(r); }
+        await FX.tween(ghost ? 500 : m === 12 ? 1500 : m > P.turn ? 1000 : 700, (k) => {
           if (ghost) { $('#pHeld').setAttribute('d', pt(R.closedAt, m, k)); }
           else { drawYou(m, k); const g = prev.gainYen + (r.gainYen - prev.gainYen) * k; gv.textContent = F.yenSigned(g); gv.classList.toggle('neg', g < 0); }
         });
         if (!ghost) { drawYou(m); gv.textContent = F.yenSigned(r.gainYen); gv.classList.toggle('neg', r.gainYen < 0); $('#usdV').textContent = F.usd2(r.usd); $('#oweV').textContent = F.yen(r.owe); }
+        if (ghost) await FX.wait(300);
         if (m === 12) { sfx.thud(); if (!FX.reduced()) { const fl = $('#floor'); fl.classList.remove('shake'); void fl.offsetWidth; fl.classList.add('shake'); } }
       }
       async function hold() {
-        $('#carryCtrl').innerHTML = '<p class="q" aria-hidden="true">…</p>';
+        $('#carryCtrl').innerHTML = '<p class="q wait" aria-hidden="true">…</p>';
         R.month++; save(); await step(R.month, false);
-        if (R.month >= 12) { R.closedAt = 12; save(); await FX.wait(500); return ending(true); }
-        await FX.wait(R.month >= 9 ? 500 : 250); decide();
+        if (R.month >= 12) { R.closedAt = 12; save(); await FX.wait(600); return ending(true); }
+        await FX.wait(R.month >= P.turn ? 450 : 200); decide();
       }
       async function closeNow() {
         R.closedAt = R.month; save(); sfx.ok();
-        $('#carryCtrl').innerHTML = `<p class="q">You closed the trade in month ${R.closedAt} with ${F.yenSigned(res(R.closedAt).gainYen)}. Watch what the market did next.</p>`;
+        $('#carryCtrl').innerHTML = `<p class="q">You cashed out with ${F.yenSigned(res(R.closedAt).gainYen)}. Ken is still in.</p>`;
+        $('#gainLab').textContent = 'You kept'; $('#gainSum').textContent = sum(res(R.closedAt));
         $('#pKept').setAttribute('d', `M${cx(R.closedAt)} ${cy(res(R.closedAt).gainYen)} L${cx(12)} ${cy(res(R.closedAt).gainYen)}`); $('#pKept').setAttribute('opacity', 1);
         $('#pHeld').setAttribute('opacity', 1); $('#accts').style.opacity = .45;
         for (let m = R.closedAt + 1; m <= 12; m++) await step(m, true);
-        await FX.wait(600); ending(true);
+        await FX.wait(500); ending(true);
       }
     }
 
+    // The ending: both lines, Ken's verdict, the share card; then, for Unit 12, the close-out ledger.
     function ending(fresh) {
       const k = R.closedAt, held = res(12), mine = res(k), B = J.bestExit(P), bestG = res(B).gainYen;
+      const lb = $('#ledgerBox'); if (lb) lb.remove(); $('#chartwrap').hidden = false; $('#news').hidden = false; fb('', '');
       if (k < 12) { $('#pKept').setAttribute('d', `M${cx(k)} ${cy(mine.gainYen)} L${cx(12)} ${cy(mine.gainYen)}`); $('#pKept').setAttribute('opacity', 1); $('#pHeld').setAttribute('d', pt(k, 12)); $('#pHeld').setAttribute('opacity', 1); }
       setYou(pt(0, k)); $('#dotYou').setAttribute('cx', cx(k)); $('#dotYou').setAttribute('cy', cy(mine.gainYen));
       const lyou = $('#lblYou'), lh = $('#lblHeld');
       if (k < 12) { lyou.setAttribute('x', cx(12) + 8); lyou.setAttribute('y', cy(mine.gainYen) + 5); lyou.textContent = `You ${F.yenSigned(mine.gainYen)}`; }
-      lh.setAttribute('x', cx(12) + 8); lh.setAttribute('y', cy(held.gainYen) + 5); lh.textContent = k < 12 ? `Held ${F.yenSigned(held.gainYen)}` : `You ${F.yenSigned(held.gainYen)}`; if (k === 12) lh.setAttribute('fill', '#FF8B85');
-      $('#monthL').textContent = 'The year is over'; const tk = $('#fl-tick'); if (tk) { FX.Flap(tk, 9).set('142 YEN', { instant: true, label: '142 yen per dollar' }); }
-      const gv = $('#gainV'); gv.textContent = F.yenSigned(mine.gainYen); gv.classList.toggle('neg', mine.gainYen < 0); $('.gainbox .lab').textContent = k < 12 ? 'You kept' : 'Your result';
-      $('#news').textContent = J.rideEnding(k, P); $('#news').classList.add('alert'); $('#accts').hidden = true;
-      $('.prompt').textContent = J.PROMPTS.carryLedger;
-      // The close-out at 142: worked first at 150, then the student's own lines (version 1's table and judge).
-      const strip = Array.from({ length: 12 }, (_, i) => { const m = i + 1, g = res(m).gainYen, hgt = Math.round(40 * Math.abs(g) / Math.max(bestG, 1)) + 3; return `<span class="ex-m${m === k ? ' me' : ''}${m === B ? ' best' : ''}"><i class="${g < 0 ? 'neg' : ''}" style="height:${Math.min(hgt, 46)}px"></i><b>${m}</b></span>`; }).join('');
-      $('#after').innerHTML = `<div class="share" role="group" aria-label="Your result"><div class="exits" aria-hidden="true">${strip}</div><p class="exits-key"><span class="k-me">your exit</span> <span class="k-best">this year’s best exit</span></p><p class="verdict-l">${esc(J.exitVerdict(k, P))}</p>
-          <div class="row"><button type="button" class="btn small" id="shareBtn">Send this to a friend</button><button type="button" class="btn small ghost" id="again2">Ride a new year</button>${S.quick && !L('q1').done ? '<button type="button" class="btn small ghost" id="trip">Take the whole trip</button>' : ''}</div><p class="sharemsg" id="shareMsg" role="status"></p></div>
-        <div class="ledger two" role="group" aria-label="Close out the year"><h3>For Unit 12: close out the year</h3>
-          <div class="ln hd"><span class="l"></span><span class="col ex">Worked: if a dollar still bought 150</span><span class="col">Holding to the end: a dollar buys 142</span></div>
-          <div class="ln"><span class="l">Yen you get</span><span class="col ex">$105,000 × 150 = <b>¥15,750,000</b></span><span class="col">$105,000 × 142 = ${numIn('k0', 'Yen you get for your dollars', true, '¥')}</span></div>
-          <div class="ln"><span class="l">Yen you owe</span><span class="col ex">¥15,000,000 plus a year at 0.1% = <b>¥15,015,000</b></span><span class="col">¥15,000,000 plus a year at 0.1% = <b>¥15,015,000</b></span></div>
-          <div class="ln"><span class="l">Gain or loss</span><span class="col ex">¥15,750,000 − ¥15,015,000 = <b>+¥735,000</b></span><span class="col">yen you get − yen you owe = ${numIn('k2', 'Gain or loss, in yen', true, '¥')}</span></div></div>`;
-      $('#carryCtrl').innerHTML = `<button type="button" class="btn" id="chk">Check the ledger</button> <button type="button" class="link" id="again">Ride the year again</button>`;
-      if (e.rows) { if (e.rows[0]) $('#k0').value = e.rows[0]; if (e.rows[2]) $('#k2').value = e.rows[2]; }
-      if (e.done) { markIn('k0', true); markIn('k2', true); $('#chk').hidden = true; fb('ok', `<b class="fbtag">Right.</b> ${esc(J.carryPraise(t, k, P).replace(/^Right\.\s*/, ''))}`); showNext(); if (L('carry').value !== J.rideValue(k, R.seed)) { L('carry').value = J.rideValue(k, R.seed); save(); } }
-      const check = () => {
-        attempt('carry'); const rows = [val('k0'), null, val('k2')], res = C.judgeTask(t, { rows }, h);
-        L('carry').rows = rows; save();
-        res.rowRes.forEach((x, i) => { if (x) markIn(i === 0 ? 'k0' : 'k2', x.ok); });
-        if (!res.ok) { fb('bad', esc(res.msg)); sfx.nope(); return; }
-        $('#chk').hidden = true; win('carry', esc(J.carryPraise(t, k, P)), { rows, value: J.rideValue(k, R.seed) });
-      };
-      $('#chk').addEventListener('click', check); onEnter('k0', check); onEnter('k2', check);
-      const again = () => { R.month = 0; R.closedAt = null; R.seed = J.newSeed(); save(); stopCarry(); };
-      $('#again').addEventListener('click', again); $('#again2').addEventListener('click', again);
+      lh.setAttribute('x', cx(12) + 8); lh.setAttribute('y', cy(held.gainYen) + 5); lh.textContent = k < 12 ? `Ken ${F.yenSigned(held.gainYen)}` : `You ${F.yenSigned(held.gainYen)}`;
+      $('#monthL').textContent = 'The year is over'; const tk = $('#fl-tick'); if (tk) FX.Flap(tk, 9).set('142 YEN', { instant: true, label: '142 yen per dollar' });
+      const gv = $('#gainV'); gv.textContent = F.yenSigned(mine.gainYen); gv.classList.toggle('neg', mine.gainYen < 0); $('#gainLab').textContent = k < 12 ? `You kept, cashing out in month ${k}` : 'Your result'; $('#gainSum').textContent = sum(mine); $('.pair-l').innerHTML = 'At year end, one dollar buys';
+      $('#accts').hidden = true; $('#news').textContent = J.rideEnding(k, P); $('#news').classList.add('alert');
+      say('kenSay', ...J.kenEnding(k, P));
+      $('.prompt').textContent = J.PROMPTS.carryEnd;
+      const strip = Array.from({ length: 12 }, (_, i) => { const m = i + 1, g = res(m).gainYen, hgt = Math.round(36 * Math.abs(g) / Math.max(bestG, 1)) + 3; return `<span class="ex-m${m === k ? ' me' : ''}${m === B ? ' best' : ''}"><i class="${g < 0 ? 'neg' : ''}" style="height:${Math.min(hgt, 40)}px"></i><b>${m}</b></span>`; }).join('');
+      $('#carryCtrl').innerHTML = `<div class="share" role="group" aria-label="Your result"><div class="exits" aria-hidden="true">${strip}</div><p class="exits-key"><span class="k-me">you</span> <span class="k-best">best exit</span></p><p class="verdict-l">${esc(J.exitVerdict(k, P))}</p>
+          <div class="row"><button type="button" class="btn small" id="shareBtn">Send to a friend</button><button type="button" class="btn small ghost" id="again2">New year</button></div><p class="sharemsg" id="shareMsg" role="status"></p></div>
+        <button type="button" class="btn" id="toLedger">${e.done ? 'See your close-out' : 'Close out the year'}</button>${S.quick && !L('q1').done ? '<button type="button" class="link" id="trip">Take the whole trip</button>' : ''}`;
+      const again = () => { R.month = 0; R.closedAt = null; R.seed = J.newSeed(); R.day1 = 4; save(); stopCarry(); };
+      $('#again2').addEventListener('click', again);
       if ($('#trip')) $('#trip').addEventListener('click', () => { S.quick = false; save(); go(IDS[0]); });
       $('#shareBtn').addEventListener('click', async () => {
         const url = location.origin + location.pathname + '?vs=' + J.rideValue(k, R.seed), text = J.shareText(k, P), msg = $('#shareMsg');
-        try { if (navigator.share && matchMedia('(pointer: coarse)').matches) { await navigator.share({ title: 'The Currency Desk', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
-        try { await navigator.clipboard.writeText(text + ' ' + url); msg.textContent = 'Copied. Paste it into a text to a friend.'; }
-        catch (e) { msg.innerHTML = `<label class="sr" for="shareTxt">Your result to send</label><input id="shareTxt" readonly value="${esc(text + ' ' + url)}" style="width:100%">`; $('#shareTxt').select(); }
+        try { if (navigator.share && matchMedia('(pointer: coarse)').matches) { await navigator.share({ title: 'The Currency Desk', text, url }); return; } } catch (er) { if (er && er.name === 'AbortError') return; }
+        try { await navigator.clipboard.writeText(text + ' ' + url); msg.textContent = 'Copied. Paste it into a text.'; }
+        catch (er) { msg.innerHTML = `<label class="sr" for="shareTxt">Your result to send</label><input id="shareTxt" readonly value="${esc(text + ' ' + url)}" style="width:100%">`; $('#shareTxt').select(); }
       });
-      helps('carry', () => 'Multiply the dollars you have by the rate at the end: $105,000 × 142. Then subtract the yen you owe.',
-        () => 'Yen you get: $105,000 × 142 = ¥14,910,000<br>Gain or loss: ¥14,910,000 − ¥15,015,000 = −¥105,000');
-      if (fresh) $('#k0').focus({ preventScroll: false });
+      $('#toLedger').addEventListener('click', () => ledger(true));
+      if (e.done && L('carry').value !== J.rideValue(k, R.seed)) { L('carry').value = J.rideValue(k, R.seed); save(); }
+      if (fresh && !quick) $('#toLedger').focus({ preventScroll: true });
+
+      function ledger(focus) {
+        $('#chartwrap').hidden = true; $('#news').hidden = true;
+        $('#carryCtrl').innerHTML = `<button type="button" class="link" id="back">Back to your result</button>`;
+        $('#back').addEventListener('click', () => ending(false));
+        $('.world > .ctrl', beatEl).insertAdjacentHTML('afterbegin', `<div class="ledger two" id="ledgerBox" role="group" aria-label="Close out the year"><h3>Close out the year</h3>
+          <div class="ln hd"><span class="l"></span><span class="col ex">Worked: if a dollar still bought 150</span><span class="col">Holding to the end: a dollar buys 142</span></div>
+          <div class="ln"><span class="l">Yen you get</span><span class="col ex">$105,000 × 150 = <b>¥15,750,000</b></span><span class="col">$105,000 × 142 = ${numIn('k0', 'Yen you get for your dollars', true, '¥')}</span></div>
+          <div class="ln"><span class="l">Yen you owe</span><span class="col ex"><b>¥15,015,000</b></span><span class="col"><b>¥15,015,000</b></span></div>
+          <div class="ln"><span class="l">Gain or loss</span><span class="col ex">¥15,750,000 − ¥15,015,000 = <b>+¥735,000</b></span><span class="col">yen you get − yen you owe = ${numIn('k2', 'Gain or loss, in yen', true, '¥')}</span></div>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn" id="chk">Check the ledger</button></div></div>`);
+        if (e.rows) { if (e.rows[0]) $('#k0').value = e.rows[0]; if (e.rows[2]) $('#k2').value = e.rows[2]; }
+        if (e.done) { markIn('k0', true); markIn('k2', true); $('#chk').hidden = true; fb('ok', `<b class="fbtag">Right.</b> ${esc(J.carryPraise(t, k, P).replace(/^Right\.\s*/, ''))}`); showNext(); }
+        const check = () => {
+          attempt('carry'); const rows = [val('k0'), null, val('k2')], r2 = C.judgeTask(t, { rows }, h);
+          L('carry').rows = rows; save();
+          r2.rowRes.forEach((x, i) => { if (x) markIn(i === 0 ? 'k0' : 'k2', x.ok); });
+          if (!r2.ok) { fb('bad', esc(r2.msg)); sfx.nope(); return; }
+          $('#chk').hidden = true; win('carry', esc(J.carryPraise(t, k, P)), { rows, value: J.rideValue(k, R.seed) });
+        };
+        $('#chk').addEventListener('click', check); onEnter('k0', check); onEnter('k2', check);
+        helps('carry', () => 'Multiply the dollars you have by the rate at the end: $105,000 × 142. Then subtract the yen you owe.',
+          () => 'Yen you get: $105,000 × 142 = ¥14,910,000<br>Gain or loss: ¥14,910,000 − ¥15,015,000 = −¥105,000');
+        if (focus) { if (matchMedia('(max-width: 860px)').matches) $('#ledgerBox').scrollIntoView({ block: 'start' }); $('#k0').focus({ preventScroll: true }); }
+      }
     }
   }
 
@@ -541,13 +579,13 @@
     setScene('floor', 'deep'); const t = task('breakeven'), e = L('breakeven'), BE = J.BE;
     let rate = 147, choice = e.choice || null;
     frame('breakeven', { prompt: esc(J.PROMPTS.breakeven(t)),
-      world: `<div class="floor"><div style="width:100%">
+      world: says(...J.LINES.breakeven, 'ken') + `<div class="floor"><div style="width:100%">
           <div class="ledger two" role="group" aria-label="Break-even rate"><h3>Break-even rate</h3>
             <div class="ln hd"><span class="l"></span><span class="col ex">Worked: borrow ¥1,000,000 at 0%, change at 100, earn 3%</span><span class="col">Your trade</span></div>
             <div class="ln"><span class="l">Yen you owe</span><span class="col ex"><b>¥1,000,000</b></span><span class="col"><b>¥15,015,000</b></span></div>
             <div class="ln"><span class="l">Dollars you have</span><span class="col ex"><b>$10,300</b></span><span class="col"><b>$105,000</b></span></div>
             <div class="ln"><span class="l">Break-even rate</span><span class="col ex">¥1,000,000 ÷ $10,300 = <b>97.1</b></span><span class="col">yen you owe ÷ dollars you have = ${numIn('b2', 'Break-even rate, in yen per dollar', false)}</span></div></div></div>
-        <div class="bemeter"><div><label for="beSlide" class="q" style="display:block;margin:0 0 4px">Slide the rate at the end of the year</label><input type="range" class="slider" id="beSlide" min="${BE.min}" max="${BE.max}" step="0.1" value="${rate}"></div><div class="val" id="beVal" aria-live="polite"></div></div>
+        <div class="bemeter"><div><label for="beSlide" class="q" style="display:block;margin:0 0 4px">Or find it: slide until the year ends at ¥0</label><input type="range" class="slider" id="beSlide" min="${BE.min}" max="${BE.max}" step="0.1" value="${rate}"></div><div class="val" id="beVal" aria-live="polite"></div></div>
         <div id="beChoice" hidden><p class="q" id="beLegend">A dollar bought 150 yen when you started. About how far could the yen rise before the year’s interest gain was gone?</p><div id="beOpts" class="tickets" role="group" aria-labelledby="beLegend"></div></div>
         <div id="hist"></div></div>`,
       ctrl: `<button type="button" class="btn" id="chk">Check the rate</button>` });
@@ -575,7 +613,7 @@
       choice = b.dataset.c; attempt('breakeven'); const rows = [null, null, val('b2')], res = C.judgeTask(t, { rows, choice }, h);
       $$('#beOpts .ticket').forEach((x) => x.classList.remove('wrong', 'right'));
       if (!res.ok) { b.classList.add('wrong'); fb('bad', 'Compare 150 with your break-even rate of about 143. A move of 7 yen on 150 is about 5%.'); sfx.nope(); return; }
-      b.classList.add('right'); L('breakeven').choice = choice; win('breakeven', esc(C.praise(t)), { rows, choice }); showHistory();
+      b.classList.add('right'); L('breakeven').choice = choice; win('breakeven', esc(C.praise(t)), { rows, choice }); say('ken', ...J.LINES.breakevenAfter); showHistory();
     }));
     helps('breakeven', () => 'Divide the yen you owe by the dollars you have: ¥15,015,000 ÷ $105,000. Or slide the rate until the gain reads ¥0.',
       () => 'Break-even rate: ¥15,015,000 ÷ $105,000 = 143.0<br>From 150 to 143 is a move of 7 yen, about 5%.');
@@ -587,10 +625,11 @@
     if (e.done) J.PEOPLE.forEach((p) => { vals[p.id] = p.happy ? 'win' : 'lose'; });
     const pics = { tractor: A.tractor, student: A.student, toyota: A.car };
     frame('q3', { prompt: esc(J.PROMPTS.q3),
-      world: `<div class="cards3">${J.PEOPLE.map((p) => `<div class="pc" data-p="${p.id}">${pics[p.id]}<span class="who">${esc(p.name)}</span><div class="seg" role="group" aria-label="${esc(p.name)}"><button type="button" data-v="win">Happy</button><button type="button" data-v="lose">Hurt</button></div><span class="after" hidden>${esc(p.after)}</span></div>`).join('')}</div>`,
-      ctrl: '' });
+      world: `<div class="cards3">${J.PEOPLE.map((p) => `<div class="pc" data-p="${p.id}"><div class="pcpic">${pics[p.id]}${p.who ? `<span class="pcface" data-who="${p.who}">${A.person(p.who, 'flat')}</span>` : ''}</div><span class="who">${esc(p.name)}</span><div class="seg" role="group" aria-label="${esc(p.name)}"><button type="button" data-v="win">Happy</button><button type="button" data-v="lose">Hurt</button></div><span class="after" hidden>${esc(p.after)}</span></div>`).join('')}</div>`,
+      ctrl: `<p class="q">${L('q3').done ? '' : 'Mark all three.'}</p>` });
     const paint = () => $$('.pc').forEach((c) => { const v = vals[c.dataset.p]; $$('.seg button', c).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v))); c.dataset.v = v || ''; });
-    const reveal = () => $$('.pc').forEach((c) => { $('.after', c).hidden = false; c.classList.add('shown'); });
+    const reveal = () => $$('.pc').forEach((c) => { const p = J.PEOPLE.find((x) => x.id === c.dataset.p); c.classList.add('shown'); const f = $('.pcface', c);
+      if (f) { f.innerHTML = A.person(p.who, p.happy ? 'happy' : 'worried'); $('.after', c).innerHTML = `<b>${esc(J.NAMES[p.who])}:</b> “${esc(p.says)}”`; } $('.after', c).hidden = false; });
     $$('.seg button').forEach((b) => b.addEventListener('click', () => {
       if (L('q3').done) return; const id = b.closest('.pc').dataset.p; vals[id] = b.dataset.v; sfx.tick(); paint();
       if (Object.keys(vals).length < 3) return;
@@ -625,7 +664,7 @@
   function stopNote() {
     setScene('dawn', 'dawn'); const e = L('note'), N = C.note;
     frame('note', { prompt: esc(J.PROMPTS.note),
-      world: `<div class="postcard"><div class="pic"><img src="assets/img/hiroshige-saruwaka-night.webp" alt="" loading="lazy"><p class="bubble">The yen is cheap. A dollar buys 150 of them!</p></div>
+      world: `<div class="postcard"><div class="pic"><img src="assets/img/hiroshige-saruwaka-night.webp" alt="" loading="lazy"><div class="textmsg">${says(...J.LINES.note)}</div></div>
         <div class="write"><div class="stampbox" aria-hidden="true">東京</div><label for="memo">Your reply</label><textarea id="memo" spellcheck="true">${esc(S.memo)}</textarea><p class="wc" id="wc"></p></div></div>`,
       ctrl: '' });
     const ta = $('#memo'), wc = () => { const n = h.wordCount(ta.value); $('#wc').textContent = n >= N.minWords ? `${n} words. Saved: your reply prints on your boarding pass.` : `${n} words so far. Your reply saves itself once it reaches ${N.minWords} words.`; };
@@ -675,7 +714,7 @@
     S.at = 'receipt'; save(); renderRoute(); setScene('dawn', 'dawn');
     const all = doneCount() === IDS.length, open = IDS.filter((id) => !L(id).done);
     beatEl.innerHTML = `<div class="beat" data-id="receipt"><div class="head"><p class="stopno">Your receipt</p><h1>${all ? 'Every stop is complete' : 'A few stops are still open'}</h1>
-      <p class="prompt">${all ? 'Download your boarding pass and upload the file to the assignment page.' : 'This assignment is graded on completion. Finish the open stops for full points, then download your boarding pass.'}</p></div>
+      <p class="prompt">${all ? 'Download your boarding pass and upload the file to the assignment page.' : 'Finish the open stops for full credit, then download your boarding pass.'}</p></div>
       <div class="world"><p class="q" style="color:var(--ink)">Drawing your boarding pass…</p></div>
       <div class="ctrl"><p class="q" id="ptsLine"></p>${open.length ? `<ul class="openlist">${open.map((id) => `<li><span><span class="nomark">✗</span> ${esc(stopOf(id).title)}</span><button type="button" class="link" data-go="${id}">Go there</button></li>`).join('')}</ul>` : ''}
         <div class="next"><a class="btn" id="dl" href="#" download>Download your boarding pass</a></div>

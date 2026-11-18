@@ -138,7 +138,7 @@
     if (k === B) return `You got out at the top. Month ${B} was this year’s best exit, at ${yenSigned(best)}.`;
     if (k < B) return `You got out ${mo(B - k)} before the top and kept ${pct}% of the best possible gain.`;
     if (g < 0) return `You got out ${mo(k - B)} after the top, too late, and lost ${yen(-g)}. Holding to the end would have lost ¥105,000.`;
-    return `You got out ${mo(k - B)} after the top, as the yen turned, and kept ${pct}% of the best possible gain.`;
+    return `You got out ${mo(k - B)} after the top, as the yen rose, and kept ${pct}% of the best possible gain.`;
   }
   function shareText(k, path) {
     const B = bestExit(path), g = closeResult(k, path).gainYen;
@@ -149,8 +149,8 @@
   }
   function challengeLine(k, path) {
     const g = closeResult(k, path).gainYen;
-    if (k >= 12) return `A friend held this yen trade to the end and lost ${yen(-g)}. Same year, your turn.`;
-    return `A friend got out of this yen trade in month ${k} with ${yenSigned(g)}. Same year, your turn.`;
+    if (k >= 12) return `A friend held this yen trade to the end and lost ${yen(-g)}. Same year. Can you beat it?`;
+    return `A friend got out of this yen trade in month ${k} with ${yenSigned(g)}. Same year. Can you beat it?`;
   }
   // Praise for the close-out table. It keeps version 1's facts ($5,000 of interest, a loss of ¥105,000, August 5, 2024) and
   // describes this year's path.
@@ -179,8 +179,8 @@
   // ---------------- step 8: who is happy ----------------
   // The three postcards map onto version 1's four options, so the receipt records the same choice index.
   const PEOPLE = [
-    { id: 'tractor', name: 'A Michigan company selling tractors in Europe', after: 'Its $100,000 tractor now costs 10% more in euros, so European farmers may buy elsewhere.', happy: false },
-    { id: 'student', name: 'An American student spending a semester in Tokyo', after: 'Each $1,000 she changes now buys 10% more yen.', happy: true },
+    { id: 'tractor', who: 'linda', name: 'A Michigan company selling tractors in Europe', after: 'Its $100,000 tractor now costs 10% more in euros, so European farmers may buy elsewhere.', says: 'Our $100,000 tractor just got 10% dearer in euros. French farmers may buy elsewhere.', happy: false },
+    { id: 'student', who: 'maya', name: 'An American student spending a semester in Tokyo', after: 'Each $1,000 she changes now buys 10% more yen.', says: 'Every $1,000 I change now buys 10% more yen. Sushi night!', happy: true },
     { id: 'toyota', name: 'Toyota selling cars in the U.S.', after: 'Each $30,000 car it sells in the U.S. now changes into 10% more yen.', happy: true },
   ];
   function happyChoice(set) {
@@ -217,33 +217,82 @@
   const COIN_SUPPORTS = ['The cash and bonds in its vault', 'A Fed guarantee', 'Its computer code', 'Bitcoin’s price'];
   const COIN_ASK = 'What holds the coin up at $1? Tap it.';
 
+  // ---------------- the people on the trip: who says what, and when ----------------
+  const NAMES = { dana: 'Dana, exchange clerk', sato: 'Mrs. Sato, fruit seller', travis: 'Travis, on your flight', ken: 'Ken, yen trader', linda: 'Linda, Michigan tractor maker', maya: 'Maya, student in Tokyo' };
+  const LINES = {
+    q1: ['travis', 'shocked', 'In January 2022 a dollar got you 115 yen. By October it got 150. What happened?'],
+    q1After: ['travis', 'happy', 'So everyone wanted dollars. Good for me: more yen for my trip.'],
+    convert: ['dana', 'happy', 'Dollars times the rate gives you yen. The man before you got ¥45,000 for $300.'],
+    convertAfter: (t) => ['dana', 'happy', `${yen(t.yen)} for your ${usd0(t.D)}. Have a good flight.`],
+    sato: ['sato', 'happy', 'Apples! ¥200 each.'],
+    apple: ['travis', 'smug', 'A dollar buys 150 yen, so yen are cheap. This apple has to be a bargain.'],
+    appleAfter: ['travis', 'worried', 'Huh. $1.33. So 150 yen to the dollar doesn’t make anything cheap.'],
+    bigmac: ['travis', 'happy', 'A Big Mac for ¥500? That’s about three bucks!'],
+    bigmacAfter: ['travis', 'smug', 'So by the burger, the yen really is undervalued. I’m having two.'],
+    q2: ['ken', 'smug', 'I’m Ken. I trade yen. Nobody sets this price. A carmaker bringing U.S. sales home has to buy yen, and buying pushes the yen up. Send these orders in.'],
+    q2Mof: ['ken', 'shocked', 'Japan’s government just stepped in and bought yen. It did that in 2022 and 2024.'],
+    q2Sort: ['ken', 'flat', 'Three currencies, three systems. Put each label on the one it runs.'],
+    q2After: ['ken', 'happy', 'Floating, pegged, managed. Now let me show you my favorite trade.'],
+    day1: ['ken', 'smug', 'Borrow yen almost free, earn 5% in dollars. I’ve run this since 2022. Free money.'],
+    danger: ['ken', 'flat', 'The interest is locked in. The only thing that can hurt you is the yen getting stronger before you change back. Never happens.'],
+    breakeven: ['ken', 'flat', 'How far could the yen have risen before we lost money? I never worked it out.'],
+    breakevenAfter: ['ken', 'worried', 'About 5%. In August 2024 it rose more than that in a few weeks.'],
+    note: ['travis', 'smug', 'The yen is cheap. A dollar buys 150 of them!'],
+  };
+  // Ken on the trading floor, every month. He always holds to the end.
+  function kenSays(m, path, youOut) {
+    path = path || REF; const CALM = ['Told you. Free money.', 'Another month of interest for doing nothing.', 'Everyone on this floor runs the same trade.', 'Borrowing yen costs nothing. Why would you stop?'];
+    if (m === 0) return ['ken', 'smug', LINES.day1[2]];
+    if (m === 12) return ['ken', 'shocked', 'Everyone is buying back yen at once. I need to make some calls.'];
+    if (m === path.alarm) return ['ken', 'flat', 'Japan bought yen again. They always back off.'];
+    if (m === path.turn) return ['ken', 'smug', 'The Bank of Japan has hinted before. I’m staying in.'];
+    if (m === path.turn + 1) return ['ken', 'flat', 'A blip. Hold your nerve.'];
+    if (m > path.turn) return ['ken', 'worried', 'Everyone is buying back yen. I’m fine. Probably.'];
+    if (youOut) return ['ken', 'smug', `Cashed out? I just collected another month. Rookie.`];
+    return ['ken', 'smug', CALM[(m + (path.seed % 4)) % 4]];
+  }
+  function kenEnding(k, path) {
+    const B = bestExit(path), g = closeResult(k, path).gainYen;
+    if (k >= 12) return ['ken', 'worried', 'We both rode it down. I said free money. I was wrong.'];
+    if (k === B) return ['ken', 'shocked', `You got out at the very top with ${yenSigned(g)}? I lost ¥105,000. Lunch is on you.`];
+    if (g < 0) return ['ken', 'worried', 'Late, but not as late as me. I lost ¥105,000.'];
+    if (k < B) return ['ken', 'worried', `I laughed when you left. Then I lost ¥105,000. You kept ${yenSigned(g)}.`];
+    return ['ken', 'flat', `You got out after the top but before me. You kept ${yenSigned(g)}; I lost ¥105,000.`];
+  }
+  // What the next month could bring, so holding is a judgment: the same rate, or a yen two yen stronger.
+  function nextMonthCases(m, path) { const r = rateAt(m, path); return { rate: r, stay: C.carryAt(m + 1, r).gainYen, dropRate: Math.round((r - 2) * 10) / 10, drop: C.carryAt(m + 1, r - 2).gainYen }; }
+  // Day one, worked: the trade's two ends.
+  const DANGER = { stay: C.carryAt(12, 150), fall: C.carryAt(12, 142) };
+
   // ---------------- every sentence above a first control (rule 28: at most about 40 words) ----------------
   const PROMPTS = {
     start: 'Borrow ¥15,000,000 at almost no interest, earn 5% in dollars, and choose each month whether to cash out. Traders made money this way for years, until August 2024.',
-    trip: 'Taking Unit 12? Take the whole trip from Chicago to Tokyo: ten stops, then your receipt. Finish all ten for full points. A wrong answer never costs points.',
+    trip: 'Taking Unit 12? Take the whole trip from Chicago to Tokyo. Reaching the end earns full credit.',
     q1: 'In 2022 the Fed raised its rate above 4%, as you saw in Unit 3. Japan kept its rate below zero. Where does an investor’s money go?',
     convert: (t) => `You hand over ${usd0(t.D)}. The board says ${t.R} yen per dollar. How many yen do you get?`,
     convertMeal: (t) => `In Tokyo, a meal costs ${yen(t.Y)}. What does it cost in dollars?`,
     apple: (t) => `An apple costs ${yen(t.yen)} in Tokyo and ${usd2(t.usd)} in Chicago. A dollar buys ${t.R} yen. Where is the apple cheaper, and by how much in dollars?`,
     bigmac: (t) => `On ${C.BIGMAC.date}, a Big Mac cost ${yen(t.jp)} in Japan and ${usd2(t.us)} in the U.S. A dollar bought ${t.R} yen. What exchange rate would make the two burgers cost the same?`,
-    q2: 'Nobody fixes how many yen a dollar buys. Send these orders into the market and watch the yen, Hong Kong’s dollar and China’s yuan.',
-    carryDay1: 'You borrow yen where interest is almost free and earn 5% in dollars. Make the trade in three taps.',
-    carryRide: 'Every month, hold the trade or close it and keep what you have.',
+    q2: 'Send the orders in and watch three currencies react.',
+    carryDay1: 'Make Ken’s favorite trade in three taps, then see how the year can end.',
+    carryEnd: 'Ken held to the end. Compare your year with his.',
+    carryRide: 'Each month, hold or cash out.',
     carryLedger: 'Work out the year for a trader who held to the end. Change the dollars back at 142 and repay the loan.',
     breakeven: (t) => `You ended the year with ${usd0(t.usd)} and owed ${yen(t.owe)}. At what rate would your dollars repay the loan exactly, with nothing left over?`,
     q3: 'The dollar rises 10% against the euro and the yen. Mark each one Happy or Hurt.',
     q4: 'Hong Kong keeps its peg by selling U.S. dollars from its reserve. A stablecoin is a peg run by a company.',
-    note: 'A friend texts you: “The yen is cheap. A dollar buys 150 of them!” Answer your friend in three sentences, using something you worked out on this trip.',
+    note: 'Travis texts you from Tokyo. Answer him in three sentences, using something you worked out on this trip.',
   };
   const MARKET_NOTES = {
     mof: 'Japan’s government sells dollars and buys yen to slow the fall, as it did in 2022 and 2024.',
-    hk: 'Hong Kong has held its dollar between 7.75 and 7.85 since 2005. At 7.85 the Hong Kong Monetary Authority sells U.S. dollars from its reserve.',
-    cn: 'China’s central bank sets a central rate each morning, and the yuan may move only 2% from it.',
+    hk: 'Held between 7.75 and 7.85 since 2005. At 7.85 the Hong Kong Monetary Authority sells U.S. dollars from its reserve.',
+    cn: 'China’s central bank sets a central rate each morning; the yuan may move only 2% from it.',
     sketch: 'These moves are a sketch. The real market trades more than $9 trillion of currencies a day.',
+    sketchShort: '(a sketch: the real market trades more than $9 trillion a day)',
   };
   const USDC = 'In March 2023, $3.3 billion of USDC’s reserves were stuck at Silicon Valley Bank. The coin fell to about 86 cents, and it was back to $1 on March 13, after regulators said every depositor would be repaid.';
 
   root.JOURNEY = { STOPS, notesFor, DIAL, burgerUsd, dialSnap, dialBalanced, tilt, SWISS, ORDERS, MARKET, playMarket,
     closeResult, bestExit, makePath, pathOf, newSeed, rateAt, REF, newsFor, parseRide, exitVerdict, shareText, challengeLine, rideValue, parseRideValue, NEWS, rideEnding, rideReceiptLine, carryPraise, BE, beSnap, HISTORY_NOTES,
-    PEOPLE, happyChoice, happyFeedback, SORT_CHIPS, SORT_KEY, SORT_WHY, judgeSort, SORT_DONE, COIN_SUPPORTS, COIN_ASK, PROMPTS, MARKET_NOTES, USDC, fmt: { yen, yenSigned, usd0, usd2, r1 } };
+    NAMES, LINES, kenSays, kenEnding, nextMonthCases, DANGER, PEOPLE, happyChoice, happyFeedback, SORT_CHIPS, SORT_KEY, SORT_WHY, judgeSort, SORT_DONE, COIN_SUPPORTS, COIN_ASK, PROMPTS, MARKET_NOTES, USDC, fmt: { yen, yenSigned, usd0, usd2, r1 } };
 })(typeof window !== 'undefined' ? window : globalThis);
