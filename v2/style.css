@@ -320,6 +320,13 @@ h1 { margin: 0 0 6px; font: 900 clamp(30px, 3.2vw, 38px)/1.02 var(--display); le
   .both .bv { font-size: 18px; }
   h1 { font-size: 30px; }
 }
+/* 2026-11-19 (games rebuild push): on a phone a short-answer pick stacks its question above its buttons, both full width,
+   instead of squeezing the question into a narrow column beside them. */
+@media (max-width: 600px) {
+  .pick.row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .pick.row .opts { flex-wrap: wrap; }
+  .pick.row .opt { flex: 1 1 0; min-width: 72px; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
