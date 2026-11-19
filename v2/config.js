@@ -9,7 +9,11 @@
      month 12. carrySim() below is the one function the screen, the judge and the tests all use.
    - No new fictional names: Great Lakes Community Bank is the course's fixed fiction (COURSE-SPEC rule 16), so no case_reuse
      sweep was needed. Real figures: The Economist's Big Mac data (July 1, 2026), USDC in March 2023 (w12/sources/FACTS.md).
-   Version 1, seedVersion 1. */
+   Version 1, seedVersion 1.
+   2026-11-19 (the step-by-step rebuild, ../DESIGN.md): same app id, version, salt, step ids and judges, so receipts keep
+   their shape. Changed: the Big Mac market rate is 162.1 (the page's figure), the worked examples are the page's euro row
+   and its 142.86 row, the step labels name the new steps, the break-even feedback says the yen "weakened" (a dollar bought
+   more yen), and verifyUrl points at v2/verify.html. The page lesson.js says what each screen asks; this file still judges. */
 (function (root) {
   'use strict';
 
@@ -28,7 +32,7 @@
   function carrySim() { const rows = []; for (let m = 0; m <= 12; m++) rows.push(carryAt(m)); return rows; }
 
   // ---------------- Big Mac (step 4): The Economist, big-mac-raw-index.csv, rows dated 2026-07-01 ----------------
-  const BIGMAC = { date: 'July 1, 2026', jp: 500, us: 6.22, jpRate: 162, ch: 7.30, chRate: 0.81 };
+  const BIGMAC = { date: 'July 1, 2026', jp: 500, us: 6.22, jpRate: 162.1, eu: 6.19, euRate: 0.874 };   // 2026-11-19: 162.1 and the euro row, as the page prints them
 
   const QUIZ = [
     { title: 'Rates and the yen',
@@ -75,16 +79,16 @@
   ];
 
   const STEPS = [
-    { id: 'q1', label: 'Rates and the yen', kind: 'check', quiz: 0 },
-    { id: 'convert', label: 'Change money', kind: 'task' },
-    { id: 'apple', label: 'The apple', kind: 'task' },
-    { id: 'bigmac', label: 'The Big Mac', kind: 'task' },
-    { id: 'q2', label: 'Who sets the price?', kind: 'check', quiz: 1 },
-    { id: 'carry', label: 'The carry trade', kind: 'task' },
-    { id: 'breakeven', label: 'How far can the yen rise?', kind: 'task' },
-    { id: 'q3', label: 'A stronger dollar', kind: 'check', quiz: 2 },
-    { id: 'q4', label: 'A coin that promises $1', kind: 'check', quiz: 3 },
-    { id: 'note', label: 'Your note', kind: 'note' },
+    { id: 'q1', label: 'Who moves the yen? (step 5)', kind: 'check', quiz: 0 },
+    { id: 'convert', label: 'Change money and Which got stronger? (steps 1 and 2)', kind: 'task' },
+    { id: 'apple', label: 'The apple (step 3)', kind: 'task' },
+    { id: 'bigmac', label: 'The Big Mac (step 4)', kind: 'task' },
+    { id: 'q2', label: 'What a peg is (step 6)', kind: 'check', quiz: 1 },
+    { id: 'carry', label: 'Ken’s trade by hand and The yen trade (steps 8 and 9)', kind: 'task' },
+    { id: 'breakeven', label: 'How far can the yen rise? (step 10)', kind: 'task' },
+    { id: 'q3', label: 'A stronger dollar (step 7)', kind: 'check', quiz: 2 },
+    { id: 'q4', label: 'A coin that promises $1 (step 11)', kind: 'check', quiz: 3 },
+    { id: 'note', label: 'Your reply to Travis (step 12)', kind: 'note' },
   ];
 
   // ---------------- seeded numbers (step 2 only; every other task uses the spec's or the sources' numbers) ----------------
@@ -142,7 +146,7 @@
     breakeven: (owe, dollars) => [
       { label: 'Yen you owe at the end', calc: 'the loan plus a year’s interest', num: yen(owe), kind: 'text', input: false },
       { label: 'Dollars you have at the end', calc: 'the dollars plus a year’s interest', num: usd0(dollars), kind: 'text', input: false },
-      { label: 'Break-even rate, in yen per dollar', calc: 'yen you owe ÷ dollars you have', num: owe / dollars, kind: 'rate', input: true }],
+      { label: 'Yen per dollar at which the gain is gone', calc: 'yen you owe ÷ dollars you have', num: owe / dollars, kind: 'rate', input: true }],
   };
   // The engine's ladder() draws text as given; filled lines and given lines show their value, input lines show a box.
   const toLadder = (lines, filled) => lines.map((l) => ((filled || !l.input)
@@ -160,13 +164,13 @@
   const EXAMPLES = {
     convert: { cap: 'You change $300 at 150 yen per dollar, and a bowl of ramen costs ¥1,200.', lines: () => LINES.convert(300, 150, 1200, 'The ramen', false) },
     apple: { cap: 'A T-shirt costs ¥3,000 in Tokyo and $25.00 in Chicago, and a dollar buys 150 yen. Tokyo is cheaper.', lines: () => LINES.apple(3000, 25, 150, 'T-shirt', true) },
-    bigmac: { cap: 'On the same day, a Big Mac cost 7.30 Swiss francs in Switzerland, and a dollar bought 0.81 francs. Dividing 7.30 francs by $6.22 gives 1.17 francs per dollar, the rate at which $6.22 would buy exactly one Swiss Big Mac. At the real rate the Swiss burger costs more in dollars than the American one, so by this measure the franc was overvalued.',
-      lines: () => LINES.bigmac(BIGMAC.ch, 'CHF ', BIGMAC.us, BIGMAC.chRate).map((l, i) => (i === 1 ? Object.assign({}, l, { label: 'Swiss Big Mac in dollars at the market rate' }) : l)) },
+    bigmac: { cap: 'On the same day, a Big Mac cost €6.19 in the euro area, and a dollar bought 0.874 euros. €6.19 ÷ 0.874 = $7.08, more than $6.22, so by this test the euro was overvalued. For the burgers to cost the same, a dollar would have to buy €6.19 ÷ $6.22, about 0.995 euros.',
+      lines: () => LINES.bigmac(BIGMAC.eu, '€', BIGMAC.us, BIGMAC.euRate).map((l, i) => (i === 1 ? Object.assign({}, l, { label: 'Euro-area Big Mac in dollars at the market rate' }) : l)) },
     carry: { cap: 'What the year would have paid if a dollar still bought 150 yen at the end.', lines: () => LINES.carryEx(105000, 15015000, 150) },
-    breakeven: { cap: 'You borrow ¥1,000,000 at 0%, change it at 100 yen per dollar into $10,000, and earn 3% to end with $10,300. At 97.1 yen per dollar or fewer, you lose money.',
-      lines: () => [{ label: 'Yen you owe at the end', calc: 'the loan plus a year’s interest', num: '¥1,000,000', kind: 'text', input: false },
-        { label: 'Dollars you have at the end', calc: 'the dollars plus a year’s interest', num: '$10,300', kind: 'text', input: false },
-        { label: 'Break-even rate, in yen per dollar', calc: '¥1,000,000 ÷ $10,300', num: 1000000 / 10300, kind: 'rate', input: true }] },
+    breakeven: { cap: 'The page’s trade: borrow ¥150,000 at 0%, change it at 150 yen per dollar into $1,000, and earn 5% to end with $1,050. At 142.86 yen to the dollar, the ¥150,000 that was worth $1,000 is worth $1,050: the yen has risen 5%.',
+      lines: () => [{ label: 'Yen you owe at the end', calc: 'the loan plus a year’s interest', num: '¥150,000', kind: 'text', input: false },
+        { label: 'Dollars you have at the end', calc: 'the dollars plus a year’s interest', num: '$1,050', kind: 'text', input: false },
+        { label: 'Yen per dollar at which the gain is gone', calc: '¥150,000 ÷ $1,050', num: 150000 / 1050, kind: 'rate', input: true }] },
   };
 
   // ---------------- the carry trade's screens (step 6) ----------------
@@ -293,7 +297,7 @@
     if (t.id === 'apple' && i === 0) D.push([t.yen, 'yen', `That is the price in yen, not dollars. Divide by ${t.R}: ¥200 ÷ ${t.R}.`], [t.yen * t.R, 'mul', `To go from yen to dollars, divide: ¥200 ÷ ${t.R}.`], [t.R / t.yen, 'flip', 'Divide the yen price by the rate: ¥200 ÷ 150.']);
     if (t.id === 'apple' && i === 1) D.push([t.tokyo, 'tokyo', 'That is the Tokyo price in dollars. Now subtract the Chicago price, $1.00.'], [t.yen - t.usd, 'units', 'That subtracts $1 from 200 yen. Change the yen into dollars first, then subtract.'], [t.tokyo + t.usd, 'plus', 'Subtract the lower price from the higher one.']);
     if (t.id === 'bigmac' && i === 0) D.push([t.us / t.jp, 'flip', `Divide the yen price by the dollar price: ¥500 ÷ ${usd(t.us)}.`], [t.jp * t.us, 'mul', `Divide, don’t multiply: ¥500 ÷ ${usd(t.us)}.`], [t.R, 'market', `That is the market rate. The question asks for the rate that would make ¥500 and ${usd(t.us)} the same: ¥500 ÷ ${usd(t.us)}.`]);
-    if (t.id === 'bigmac' && i === 1) D.push([t.jp / (t.jp / t.us), 'us', 'That is the U.S. price. Change ¥500 into dollars at the market rate: ¥500 ÷ 162.'], [t.jp * t.R, 'mul', 'Divide, don’t multiply: ¥500 ÷ 162.'], [t.jp, 'yen', 'That is the price in yen. Divide by 162.']);
+    if (t.id === 'bigmac' && i === 1) D.push([t.jp / (t.jp / t.us), 'us', `That is the U.S. price. Change ¥500 into dollars at the market rate: ¥500 ÷ ${t.R}.`], [t.jp * t.R, 'mul', `Divide, don’t multiply: ¥500 ÷ ${t.R}.`], [t.jp, 'yen', `That is the price in yen. Divide by ${t.R}.`]);
     if (t.id === 'carry' && i === 0) D.push([t.usd * CARRY.start, 'start', `That uses 150, the rate when you started. By month 12 a dollar buys only ${t.R} yen: ${usd0(t.usd)} × ${t.R}.`],
       [100000 * t.R, 'nointerest', `That leaves out the year’s interest. You have ${usd0(t.usd)} now: ${usd0(t.usd)} × ${t.R}.`], [t.usd / t.R, 'div', `To go from dollars to yen, multiply: ${usd0(t.usd)} × ${t.R}.`]);
     if (t.id === 'carry' && i === 2) D.push([t.usd * CARRY.start - t.owe, 'start', `That is what the year would have paid at 150. At ${t.R}, subtract what you owe from the yen you get: ${yen(t.back)} − ${yen(t.owe)}.`],
@@ -304,7 +308,7 @@
   const plain = (s) => String(s).replace(/<[^>]+>/g, '');
   const CHOICE_MSG = {
     apple: 'Compare dollars with dollars: the Tokyo apple is $1.33 and the Chicago apple is $1.00. A bigger number of yen does not mean a higher price.',
-    bigmac: 'Look at your second line: at the market rate, Japan’s Big Mac costs less in dollars than the American one, so by this measure the yen buys more burger than the market rate says it should.',
+    bigmac: 'Japan’s Big Mac costs less in dollars than the American one, and the market gives about twice the yen that would make the burgers cost the same. By this test the yen is cheap: undervalued.',
     breakeven: 'Compare 150 with your break-even rate of about 143. A move of 7 yen on 150 is about 5%.',
   };
 
@@ -339,7 +343,7 @@
     if (t.id === 'apple') return 'The Tokyo apple costs $1.33, so Chicago is cheaper by $0.33. A price of 200 yen sounds high only because a yen is a small unit.';
     if (t.id === 'bigmac') return `At about 80 yen per dollar the burgers would cost the same, but the market gave 162. Japan’s Big Mac cost about ${usd(t.jpUsd)} against ${usd(t.us)}, so by this measure the yen was undervalued by about half.`;
     if (t.id === 'carry') return `You earned ${usd0(5000)} of interest and still lost ${yen(-t.answer)}, about ${usd0(-t.answer / t.R)}. For nine months the trade paid every month. In the last three, a yen that strengthened from 150 to 142 per dollar took the whole gain and more. On August 5, 2024, the same thing happened to many traders at once, when a dollar fell to about 144 yen.`;
-    if (t.id === 'breakeven') return 'The yen could rise only about 5% before the year’s gain was gone, about the size of the interest gap (5% minus 0.1%). The trade pays for as long as the yen rises by less than the gap. From 2022 to mid-2024 the yen fell instead, from about 115 to about 162 per dollar, so the carry trade paid month after month for years. Then the yen jumped by more than the gap in a few weeks, and the trade lost fast.';
+    if (t.id === 'breakeven') return 'The yen could rise only about 5% before the year’s gain was gone, about the size of the interest gap (5% minus 0.1%). The trade pays for as long as the yen rises by less than the gap. From 2022 to mid-2024 the yen weakened instead: a dollar went from about 115 to about 162 yen, so the carry trade paid month after month for years. Then the yen jumped by more than the gap in a few weeks, and the trade lost fast.';
     return '';
   }
   const fmtIn = (l, x) => String(Math.round(x * 1000) / 1000);
@@ -355,7 +359,7 @@
   root.DESK = {
     app: 'finan3-w12-currency-desk', version: 1, seedVersion: 1, salt: 'rize-finan3-w12-currency:c391de', points: 60,
     storageKey: 'rize-finan3-w12-currency-v1', filePrefix: 'CurrencyDesk',
-    verifyUrl: 'https://rizecomputerscience.github.io/finan3-currency-desk/verify.html',
+    verifyUrl: 'https://rizecomputerscience.github.io/finan3-currency-desk/v2/verify.html',
     calcPlaceholder: '105000*142',
     calcHint: '',
     story: { title: 'The Currency Desk', kicker: 'Financial Markets and Institutions, Unit 12', company: 'Great Lakes Community Bank', team: 'Currency Desk',
@@ -364,8 +368,8 @@
       whatBox: '',
       stepsLine: 'Ten short steps. Each calculation shows a worked example in the same table you fill in. In step 6 you move through a year one month at a time.' },
     steps: STEPS, quiz: QUIZ, walk: null, buildTasks, taskView, judgeTask, helpText, praise, selfAnswer, selfWrong,
-    note: { title: 'Is the yen cheap?', label: 'Your note', minWords: 30, receiptHeading: 'Note: is the yen cheap at 150 to the dollar?',
-      prompt: 'A friend says, “The yen is cheap. A dollar buys 150 of them!” Answer your friend in three sentences, using something you worked out on this desk.' },
+    note: { title: 'Your reply to Travis', label: 'Your reply to Travis', minWords: 30, receiptHeading: 'Reply to Travis: is the yen cheap at 150 to the dollar?',
+      prompt: 'Travis texts: “The yen is cheap. A dollar buys 150 of them!” Reply in at least 30 words, using something you worked out on this desk.' },
     // For tests and the lesson check (not used by the engine).
     CARRY, BIGMAC, carryAt, carrySim, linesFor, EXAMPLES, NEWS,
   };

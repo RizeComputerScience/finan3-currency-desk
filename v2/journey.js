@@ -107,12 +107,12 @@
   const parseRideValue = (v) => { const p = parseRide(v); return p ? p.k : null; };
   const pathOf = (seed) => (seed ? makePath(seed) : REF);
   // The ticker: one line a month, of the kinds of news that came before August 2024 (FACTS.md).
-  const CALM = ['Your interest arrives. A dollar buys {r} yen.', 'Another quiet month. A dollar buys {r} yen.', 'More traders run the same trade: borrow yen, buy dollars. A dollar buys {r} yen.', 'Borrowing yen still costs almost nothing. A dollar buys {r} yen.', 'Your pile keeps growing. A dollar buys {r} yen.'];
+  const CALM = ['Your interest arrives. A dollar buys {r} yen.', 'Another quiet month. A dollar buys {r} yen.', 'More traders run the same trade: borrow yen, buy dollars. A dollar buys {r} yen.', 'Borrowing yen still costs almost nothing. A dollar buys {r} yen.', 'Your interest keeps adding up. A dollar buys {r} yen.'];
   function newsFor(m, path) {
     path = path || REF; const r = String(rateAt(m, path)), f = (t) => t.replace('{r}', r);
     if (m === 0) return 'Day one. Your $100,000 sits in a U.S. account paying 5% a year, and you owe a bank in Japan ¥15,000,000 at 0.1%.';
     if (m === 12) return 'Everyone who borrowed yen rushes to repay at once, and all that buying pushes the yen up. A dollar buys 142 yen.';
-    if (m === path.alarm) return f('Japan’s government buys yen to slow its fall, as it did in 2024. A dollar buys {r} yen.');
+    if (m === path.alarm) return f('Japan’s government buys yen to stop it getting weaker, as it did in 2024. A dollar buys {r} yen.');
     if (m === path.turn) return f('Japan’s central bank hints that it will raise its interest rate. A dollar buys {r} yen.');
     if (m === path.turn + 1) return f('Japan’s central bank raises its rate. Some traders start buying back yen to repay their loans. A dollar buys {r} yen.');
     if (m > path.turn) return f('More traders buy back yen to repay their loans, and the yen keeps rising. A dollar buys {r} yen.');
