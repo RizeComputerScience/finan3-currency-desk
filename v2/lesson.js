@@ -236,5 +236,11 @@
     credit: 'Cashing out early, holding to the end and losing money all earn full credit.',
   };
 
-  root.LESSON = { build, RECS, stepsOf, recordFor, judgeBox, judgePick, parse, START, GAME, SHOW, PH, fmt: { yen, usd0, usd2, r1 } };
+  /* 2026-11-19: the receipt prints twelve steps, and the rubric grades twelve steps (all twelve 60, six or more 30), while the
+     receipt's data carries config.js's ten records. A step counts once its record is done, so verify.html counts the same
+     steps from any receipt, old or new; a pair (steps 1 and 2, steps 8 and 9) counts when both are finished. */
+  const stepsFromRecords = (steps, recDone) => steps.filter((s) => recDone(s.rec)).length;
+  const pointsForSteps = (n, total, pts) => (n >= total ? pts : n >= total / 2 ? pts / 2 : 0);
+
+  root.LESSON = { build, RECS, stepsOf, recordFor, judgeBox, judgePick, parse, START, GAME, SHOW, PH, stepsFromRecords, pointsForSteps, fmt: { yen, usd0, usd2, r1 } };
 })(typeof window !== 'undefined' ? window : globalThis);

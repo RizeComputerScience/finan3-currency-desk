@@ -439,7 +439,7 @@
   function wrap(g, text, maxW, maxLines) { const words = String(text).replace(/\s+/g, ' ').trim().split(' '); const lines = []; let cur = ''; for (const w of words) { const t2 = cur ? cur + ' ' + w : w; if (g.measureText(t2).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t2; } if (cur) lines.push(cur); if (lines.length > maxLines) { lines.length = maxLines; lines[maxLines - 1] += ' …'; } return lines; }
   async function receiptBlob() {
     try { await document.fonts.ready; } catch (e) { /* fonts optional */ }
-    const payload = D.makePayload(S.code, S.log, S.memo), done = recDone(), pts = D.pointsFor(done), n = STEPS.length, sd = stepsDone();
+    const payload = D.makePayload(S.code, S.log, S.memo), done = recDone(), pts = LS.pointsForSteps(LS.stepsFromRecords(STEPS, (r) => S.log[r].done), STEPS.length, D.POINTS), n = STEPS.length, sd = stepsDone();   // points by the rubric's twelve steps, as verify.html counts them
     const W = 1200, H = 1700, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     const DSP = '"Big Shoulders Display", "Arial Narrow", sans-serif', BOD = '"Atkinson Hyperlegible Next", Arial, sans-serif';
     const rr = (x, y, w, hh, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + hh, r); g.arcTo(x + w, y + hh, x, y + hh, r); g.arcTo(x, y + hh, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };

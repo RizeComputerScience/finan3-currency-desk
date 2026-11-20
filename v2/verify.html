@@ -28,7 +28,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px}
 <main>
   <h1 id="vt">Check desk receipts</h1>
   <p>This page is for instructors. The desk is graded on completion: the points printed in the colored box on each receipt are the grade, and you can enter them as shown. Use this page to spot-check. Add one or more receipt files (PNG) that students uploaded; for each one, the page rebuilds that student's numbers from the desk code on the receipt and re-checks every step from scratch, without trusting the image. Receipts carry no name or email: Learn shows who uploaded each file. Two students uploading the same desk code means one copied the other's file.</p>
-  <p class="note"><b>Points (the assignment rubric):</b> full points for every step verified, half for at least half the steps, 0 for fewer. Nothing leaves your computer; the files are read in this browser only.</p>
+  <p class="note"><b>Points (the assignment rubric):</b> 60 for all twelve steps verified, 30 for six to eleven, 0 for fewer. If a receipt with open steps prints different points from this page, use this page's points. Nothing leaves your computer; the files are read in this browser only.</p>
   <div class="drop" id="drop">
     <p><label for="files"><b>Choose receipt files</b></label> or drop them here.</p>
     <input type="file" id="files" accept="image/png" multiple>
@@ -39,6 +39,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px}
 <script src="config.js"></script>
 <script src="desk-engine.js"></script>
 <script src="journey.js"></script>
+<script src="lesson.js"></script>
 <script>
 (function(){
 const Desk=DeskEngine.make(window.DESK); document.getElementById('vt').textContent='Check '+DESK.story.title+' receipts'; document.title=document.getElementById('vt').textContent;
@@ -53,9 +54,21 @@ async function handle(files){
     const p=Desk.decodeReceipt(text);
     if(!p){rows.push({file:f.name,error:'The receipt data could not be read.'});continue;}
     const v=Desk.verifyPayload(p);
-    rows.push({file:f.name,p,v});
+    rows.push({file:f.name,p,v,s:stepView(p,v)});
   }
   render();
+}
+/* 2026-11-19: report the twelve steps the receipt prints, not the ten records its data carries. The engine's check of each
+   record is unchanged (so every receipt already issued verifies as before); a step is verified when its record is. Steps 1
+   and 2 share one record, as do steps 8 and 9. */
+function stepView(p,v){
+  const steps=LESSON.build(Desk.buildTasks(p.code||'')),byRec={},firstOf={};v.rows.forEach(x=>{byRec[x.id]=x;});
+  const list=steps.map((s,k)=>{const x=byRec[s.rec]||{},first=!firstOf[s.rec];firstOf[s.rec]=1;return {n:k+1,name:s.name,rec:s.rec,ok:!!x.verified,attempts:first?(x.attempts||0):0,help:first?(x.help||0):0};});
+  const done=LESSON.stepsFromRecords(steps,rec=>!!(byRec[rec]&&byRec[rec].verified));
+  const bad=v.rows.filter(x=>x.claimed&&!x.verified),badMsg=new Set(bad.map(x=>x.label+' is marked complete, but its answer does not check out for this desk code.'));
+  const problems=v.problems.filter(m=>!badMsg.has(m));
+  bad.forEach(x=>{const ss=list.filter(s=>s.rec===x.id);problems.push(ss.map((s,i)=>`${i?'step':'Step'} ${s.n} (${s.name})`).join(' and ')+(ss.length>1?' are marked complete, but their answers do':' is marked complete, but its answer does')+' not check out for this desk code.');});
+  return {list,done,total:steps.length,points:LESSON.pointsForSteps(done,steps.length,Desk.POINTS),problems};
 }
 function carryLine(p){const e=(p.steps||[]).find(x=>x.id==='carry');const r=e&&window.JOURNEY?JOURNEY.parseRide(e.value):null;return r?`<p><small>${esc(JOURNEY.rideReceiptLine(r.k,JOURNEY.pathOf(r.seed)))}</small></p>`:'';}
 function render(){
@@ -64,12 +77,12 @@ function render(){
   let h='<table><thead><tr><th scope="col">File</th><th scope="col">Desk code</th><th scope="col">Verified steps</th><th scope="col">Points</th><th scope="col">Checks</th></tr></thead><tbody>';
   for(const r of rows){
     if(r.error){h+=`<tr><td>${esc(r.file)}</td><td colspan="4" class="bad">${esc(r.error)}</td></tr>`;continue;}
-    const pts=r.v.points;
-    const flags=r.v.problems.length?`<span class="bad">${r.v.problems.map(esc).join('<br>')}</span>`:'<span class="ok">Receipt is intact and every completed step checks out.</span>';
-    const att=r.v.rows.map(x=>`${esc(x.label)} ${x.verified?'✓':'✗'}${x.attempts?' ('+x.attempts+(x.help?', help '+x.help:'')+')':''}`).join('<br>');
-    h+=`<tr><td>${esc(r.file)}</td><td><code>${esc(Desk.h.fmtCode(r.p.code||''))}</code>${dup(r)}<br><small>Issued ${esc(new Date(r.p.issued).toLocaleString())}, code ${esc(Desk.shortCode(r.p.sum||'000000000000'))}</small></td><td>${r.v.done} of ${r.v.total}<br><small>${att}</small></td><td>${pts}</td><td>${flags}${carryLine(r.p)}${r.p.memo?`<details><summary>Student's note</summary><p>${esc(r.p.memo)}</p></details>`:''}</td></tr>`;
+    const pts=r.s.points;
+    const flags=r.s.problems.length?`<span class="bad">${r.s.problems.map(esc).join('<br>')}</span>`:'<span class="ok">Receipt is intact and every completed step checks out.</span>';
+    const att=r.s.list.map(x=>`${x.n}. ${esc(x.name)} ${x.ok?'✓':'✗'}${x.attempts?' ('+x.attempts+(x.help?', help '+x.help:'')+')':''}`).join('<br>');
+    h+=`<tr><td>${esc(r.file)}</td><td><code>${esc(Desk.h.fmtCode(r.p.code||''))}</code>${dup(r)}<br><small>Issued ${esc(new Date(r.p.issued).toLocaleString())}, code ${esc(Desk.shortCode(r.p.sum||'000000000000'))}</small></td><td>${r.s.done} of ${r.s.total}<br><small>${att}</small></td><td>${pts}</td><td>${flags}${carryLine(r.p)}${r.p.memo?`<details><summary>Student's note</summary><p>${esc(r.p.memo)}</p></details>`:''}</td></tr>`;
   }
-  h+='</tbody></table><p><small>In the step list, the numbers in parentheses are how many times the student pressed Check, and the help level they opened (1 = first row shown, 2 = every row shown). Help never reduces points.</small></p>';
+  h+='</tbody></table><p><small>In the step list, the numbers in parentheses are how many times the student pressed Check, and the help level they opened (1 = first row shown, 2 = every row shown); steps 1 and 2 share one count, as do steps 8 and 9, and each pair counts as verified once both of its steps are finished. Help never reduces points.</small></p>';
   out.innerHTML=h;
 }
 const inp=document.getElementById('files'),drop=document.getElementById('drop');
